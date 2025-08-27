@@ -64,6 +64,8 @@ function initGame() {
     setupEventListeners();
     applyTheme();
     startTimer();
+    // Проверка отсутствия ходов на старте (на случай тупика после раздачи)
+    notifyNoMovesIfNeeded();
 }
 
 // Создание колоды
@@ -532,34 +534,21 @@ function isOppositeColor(suit1, suit2) {
 
 // Перемещение карт
 function moveCards(cards, source, target) {
-    console.log('Moving cards:', cards, 'from', source, 'to', target);
-    
-    // Сохранение хода для отмены
-    saveMove(cards, source, target);
-    
-    // Удаление карт из источника
-    removeCardsFromSource(cards, source);
-    
-    // Добавление карт в цель
-    addCardsToTarget(cards, target);
-    
-    // Обновление отображения
-    updateDisplay();
-    
-    // Увеличение счетчика ходов
-    gameState.moves++;
-    
-    // Проверка победы
-    checkWin();
-    
-    // Тактильная отдача (отключена для версии 6.0)
-    // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-    //     try {
-    //         tg.HapticFeedback.impactOccurred('medium');
-    //     } catch (error) {
-    //         console.log('HapticFeedback not supported');
-    //     }
-    // }
+	console.log('Moving cards:', cards, 'from', source, 'to', target);
+	// Сохранение хода для отмены
+	saveMove(cards, source, target);
+	// Удаление карт из источника
+	removeCardsFromSource(cards, source);
+	// Добавление карт в цель
+	addCardsToTarget(cards, target);
+	// Обновление отображения
+	updateDisplay();
+	// Увеличение счетчика ходов
+	gameState.moves++;
+	// Проверка победы
+	checkWin();
+	// Проверка отсутствия ходов
+	notifyNoMovesIfNeeded();
 }
 
 // Сохранение хода
@@ -612,53 +601,35 @@ function addCardsToTarget(cards, target) {
 
 // Взятие карты из колоды
 function drawFromStock() {
-    if (gameState.stock.length === 0) {
-        // Переворачиваем waste в stock
-        if (gameState.waste.length > 0) {
-            gameState.stock = [...gameState.waste.reverse()];
-            gameState.waste = [];
-            gameState.stock.forEach(card => card.faceUp = false);
-        }
-    } else {
-        // Берем карту из stock
-        const card = gameState.stock.pop();
-        card.faceUp = true;
-        gameState.waste.push(card);
-    }
-    
-    updateDisplay();
-    
-    // Тактильная отдача (отключена для версии 6.0)
-    // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-    //     try {
-    //         tg.HapticFeedback.impactOccurred('light');
-    //     } catch (error) {
-    //         console.log('HapticFeedback not supported');
-    //     }
-    // }
+	if (gameState.stock.length === 0) {
+		// Переворачиваем waste в stock
+		if (gameState.waste.length > 0) {
+			gameState.stock = [...gameState.waste.reverse()];
+			gameState.waste = [];
+			gameState.stock.forEach(card => card.faceUp = false);
+		}
+	} else {
+		// Берем карту из stock
+		const card = gameState.stock.pop();
+		card.faceUp = true;
+		gameState.waste.push(card);
+	}
+	updateDisplay();
+	// Проверка отсутствия ходов
+	notifyNoMovesIfNeeded();
 }
 
 // Отмена хода
 function undoMove() {
-    if (gameState.moveHistory.length === 0) return;
-    
-    const lastMove = gameState.moveHistory.pop();
-    
-    // Возвращаем карты в исходное положение
-    removeCardsFromSource(lastMove.cards, lastMove.target);
-    addCardsToTarget(lastMove.cards, lastMove.source);
-    
-    updateDisplay();
-    gameState.moves--;
-    
-    // Тактильная отдача (отключена для версии 6.0)
-    // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-    //     try {
-    //         tg.HapticFeedback.impactOccurred('light');
-    //     } catch (error) {
-    //         console.log('HapticFeedback not supported');
-    //     }
-    // }
+	if (gameState.moveHistory.length === 0) return;
+	const lastMove = gameState.moveHistory.pop();
+	// Возвращаем карты в исходное положение
+	removeCardsFromSource(lastMove.cards, lastMove.target);
+	addCardsToTarget(lastMove.cards, lastMove.source);
+	updateDisplay();
+	gameState.moves--;
+	// Проверка отсутствия ходов
+	notifyNoMovesIfNeeded();
 }
 
 // Проверка победы
@@ -845,6 +816,51 @@ function findBestTargetForAce(cardElement) {
     }
     
     return null;
+}
+
+// Проверка наличия доступных ходов
+function hasAnyMoves() {
+	// 1) Любая открытая карта из tableau может на любое tableau по правилу
+	for (let t = 0; t < 7; t++) {
+		const pile = gameState.tableau[t];
+		for (let i = 0; i < pile.length; i++) {
+			const card = pile[i];
+			if (!card.faceUp) continue;
+			// Можно переносить как одиночную карту (быстрая проверка)
+			for (let dest = 0; dest < 7; dest++) {
+				if (dest === t) continue;
+				if (canMoveToTableau(card, dest)) return true;
+			}
+			// И в foundation
+			for (let f = 0; f < 4; f++) {
+				if (canMoveToFoundation(card, f)) return true;
+			}
+		}
+	}
+	// 2) Верхняя карта из waste
+	if (gameState.waste.length > 0) {
+		const top = gameState.waste[gameState.waste.length - 1];
+		for (let dest = 0; dest < 7; dest++) {
+			if (canMoveToTableau(top, dest)) return true;
+		}
+		for (let f = 0; f < 4; f++) {
+			if (canMoveToFoundation(top, f)) return true;
+		}
+	}
+	// 3) Если есть карты в stock — всегда есть ход (можно вытянуть)
+	if (gameState.stock.length > 0) return true;
+	return false;
+}
+
+function notifyNoMovesIfNeeded() {
+	if (!hasAnyMoves()) {
+		const message = 'Нет доступных ходов. Конец игры.';
+		if (tg && tg.showPopup) {
+			tg.showPopup({ title: 'Игра окончена', message, buttons: [{ type: 'ok', text: 'Ок' }] });
+		} else {
+			alert(message);
+		}
+	}
 }
 
 // Инициализация при загрузке страницы

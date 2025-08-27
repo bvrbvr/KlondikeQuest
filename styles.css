@@ -14,6 +14,10 @@
     --modal-content-bg: #ffffff;
     --red-suit: #dc3545;
     --black-suit: #000000;
+    /* Управляемые переменные размеров и смещений */
+    /* Чуть меньшая глубина перекрытия, чтобы было видно масть нижней карты */
+    --stack-open: -32px;
+    --stack-closed: -28px;
 }
 
 /* Темная тема */
@@ -51,7 +55,7 @@ body {
 .game-container {
     max-width: 100vw;
     min-height: 100vh;
-    padding: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
     display: flex;
     flex-direction: column;
 }
@@ -292,7 +296,7 @@ body {
 
 /* Карты в tableau */
 .tableau-slot .card {
-    margin-bottom: -40px;
+    margin-bottom: var(--stack-open);
     position: relative;
     z-index: 1;
 }
@@ -302,7 +306,7 @@ body {
 }
 
 .tableau-slot .card.face-down {
-    margin-bottom: -35px;
+    margin-bottom: var(--stack-closed);
 }
 
 /* Drag and Drop */
@@ -312,9 +316,11 @@ body {
     z-index: 1000;
 }
 
-.slot.drag-over {
+.foundation-slot.drag-over,
+.tableau-slot.drag-over,
+.card.drag-over {
     border-color: var(--btn-primary-bg);
-    background-color: rgba(0, 123, 255, 0.1);
+    background-color: rgba(0, 123, 255, 0.08);
 }
 
 /* Модальное окно */
@@ -458,6 +464,67 @@ body {
     .foundation-slot {
         max-width: 45px;
     }
+}
+
+/* Точные брейкпоинты под iPhone ширины */
+/* 375px (iPhone 7/8/X/12 mini и т.п.) */
+@media (max-width: 375px) {
+    .foundation-area { max-width: 150px; gap: 6px; }
+    .tableau-area { max-width: 230px; gap: 6px; }
+    .stock-waste-area { max-width: 130px; gap: 8px; }
+    .card { max-width: 42px; font-size: 8px; }
+    .card-value { font-size: 11px; }
+    .card-suit { font-size: 13px; }
+    .foundation-slot, .stock-container, .waste-container { max-width: 42px; }
+    :root { --stack-open: -28px; --stack-closed: -24px; }
+}
+
+/* 390–393px (iPhone 12/13/14/15 и 14/15 Pro) */
+@media (min-width: 390px) and (max-width: 393px) {
+    .foundation-area { max-width: 170px; gap: 8px; }
+    .tableau-area { max-width: 255px; gap: 8px; }
+    .stock-waste-area { max-width: 140px; gap: 10px; }
+    .card { max-width: 48px; font-size: 9px; }
+    .card-value { font-size: 12px; }
+    .card-suit { font-size: 14px; }
+    .foundation-slot, .stock-container, .waste-container { max-width: 48px; }
+    :root { --stack-open: -30px; --stack-closed: -26px; }
+}
+
+/* 412–414px (XR/11/12 Pro Max/13 Pro Max/14/15 Plus) */
+@media (min-width: 412px) and (max-width: 414px) {
+    .foundation-area { max-width: 190px; gap: 10px; }
+    .tableau-area { max-width: 280px; gap: 10px; }
+    .stock-waste-area { max-width: 160px; gap: 12px; }
+    .card { max-width: 54px; font-size: 10px; }
+    .card-value { font-size: 13px; }
+    .card-suit { font-size: 15px; }
+    .foundation-slot, .stock-container, .waste-container { max-width: 54px; }
+    :root { --stack-open: -32px; --stack-closed: -28px; }
+}
+
+/* 428–430px (12/13/14/15 Pro Max, 14 Plus, 15 Plus) */
+@media (min-width: 428px) and (max-width: 430px) {
+    .foundation-area { max-width: 210px; gap: 12px; }
+    .tableau-area { max-width: 300px; gap: 12px; }
+    .stock-waste-area { max-width: 180px; gap: 12px; }
+    .card { max-width: 58px; font-size: 11px; }
+    .card-value { font-size: 14px; }
+    .card-suit { font-size: 16px; }
+    .foundation-slot, .stock-container, .waste-container { max-width: 58px; }
+    :root { --stack-open: -34px; --stack-closed: -30px; }
+}
+
+/* 448px (iPhone 16 Plus/Pro Max шире) */
+@media (min-width: 448px) and (max-width: 460px) {
+    .foundation-area { max-width: 230px; gap: 12px; }
+    .tableau-area { max-width: 320px; gap: 12px; }
+    .stock-waste-area { max-width: 190px; gap: 14px; }
+    .card { max-width: 62px; font-size: 12px; }
+    .card-value { font-size: 15px; }
+    .card-suit { font-size: 17px; }
+    .foundation-slot, .stock-container, .waste-container { max-width: 62px; }
+    :root { --stack-open: -36px; --stack-closed: -31px; }
 }
 
 /* Анимации */
