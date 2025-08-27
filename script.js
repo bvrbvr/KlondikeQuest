@@ -740,7 +740,7 @@ async function postResultToBackend(result) {
 	const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || null;
 	const username = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username) || null;
 	try {
-		await fetch('http://localhost:3000/api/results', {
+		await fetch(getApiBase() + '/results', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ ...result, userId, username })
@@ -752,13 +752,21 @@ async function postResultToBackend(result) {
 
 async function fetchStats() {
 	try {
-		const res = await fetch('http://localhost:3000/api/stats');
+		const res = await fetch(getApiBase() + '/stats');
 		if (!res.ok) throw new Error('HTTP ' + res.status);
 		return await res.json();
 	} catch (e) {
 		console.warn('Не удалось получить статистику:', e);
 		return null;
 	}
+}
+
+function getApiBase() {
+    const envHost = 'zioj.duckdns.org';
+    // Если работаем локально (localhost или file://), используем локальный бэкенд
+    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+    if (isLocal) return 'http://localhost:3000/api';
+    return 'https://' + envHost + '/api';
 }
 
 function showStatsPopup(stats) {

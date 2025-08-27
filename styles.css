@@ -1,8 +1,8 @@
 /* =========================
-   Solitaire — style.css (optimized for iPhone 13 and later)
+   Solitaire — style.css (optimized for iPhone 13 and later, v2)
    ========================= */
 
-/* === Base Variables and Theme = */
+/* === Base Variables and Theme === */
 :root {
   --bg-color: #ffffff;
   --text-color: #000000;
@@ -20,18 +20,18 @@
   --black-suit: #000000;
 
   /* Sizes */
-  --card-max: clamp(38px, 11.5vw, 74px); /* Slightly smaller for iPhone 13 Mini */
+  --card-max: clamp(40px, 12vw, 76px); /* Slightly larger for better tap targets */
   --card-h: calc(var(--card-max) * 1.4);
-  --font-s: clamp(8px, 2.2vw, 11px); /* Tighter font scaling */
+  --font-s: clamp(8px, 2.2vw, 11px);
   --font-m: clamp(10px, 2.6vw, 14px);
 
-  /* Stack depth proportional to card height */
-  --stack-open: calc(var(--card-h) * -0.42); /* Slightly tighter for small screens */
-  --stack-closed: calc(var(--card-h) * -0.34);
+  /* Stack depth (increased for better visibility) */
+  --stack-open: calc(var(--card-h) * -0.35); /* Less overlap */
+  --stack-closed: calc(var(--card-h) * -0.28);
 
   /* Safe areas / header */
-  --ui-header-h: 48px; /* Reduced for better vertical space */
-  --safe-bottom-pad: max(48px, env(safe-area-inset-bottom)); /* Extra padding for home indicator */
+  --ui-header-h: 42px; /* Reduced for more game space */
+  --safe-bottom-pad: max(50px, env(safe-area-inset-bottom));
 }
 
 [data-theme="dark"] {
@@ -68,30 +68,30 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation; /* Optimize touch for iOS */
+  touch-action: manipulation;
 }
 
 /* === Game Container === */
 .game-container {
   width: 100%;
   min-height: 100dvh;
-  padding: calc(6px + env(safe-area-inset-top))
-           calc(6px + env(safe-area-inset-right))
-           calc(6px + var(--safe-bottom-pad))
-           calc(6px + env(safe-area-inset-left));
+  padding: calc(4px + env(safe-area-inset-top))
+           calc(4px + env(safe-area-inset-right))
+           calc(4px + var(--safe-bottom-pad))
+           calc(4px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
-  scroll-padding-top: calc(var(--ui-header-h) + 6px);
-  scroll-padding-bottom: calc(160px + var(--safe-bottom-pad));
+  scroll-padding-top: calc(var(--ui-header-h) + 4px);
+  scroll-padding-bottom: calc(140px + var(--safe-bottom-pad));
   background: var(--bg-color);
 }
 
 .game-container::after {
   content: "";
   display: block;
-  height: calc(120px + var(--safe-bottom-pad));
+  height: calc(100px + var(--safe-bottom-pad));
   flex: 0 0 auto;
 }
 
@@ -103,16 +103,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  padding: 6px calc(8px + env(safe-area-inset-right)) 4px
-           calc(8px + env(safe-area-inset-left));
+  gap: 4px;
+  padding: 4px calc(6px + env(safe-area-inset-right)) 2px
+           calc(6px + env(safe-area-inset-left));
   min-height: var(--ui-header-h);
   background: var(--bg-color);
 }
 .game-info {
   display: flex;
-  gap: 10px;
-  font-size: 11px; /* Smaller for iPhone */
+  gap: 8px;
+  font-size: 10px;
 }
 .timer,
 .moves {
@@ -133,19 +133,19 @@ body {
 
 .game-controls {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 .btn {
-  padding: 8px 14px;
+  padding: 6px 10px;
   border: 0;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  min-height: 44px; /* Apple HIG compliance */
-  min-width: 76px;
+  min-height: 44px;
+  min-width: 70px;
   cursor: pointer;
-  touch-action: manipulation; /* Better touch response */
+  touch-action: manipulation;
   transition: opacity 0.2s, transform 0.2s;
 }
 .btn-primary {
@@ -168,9 +168,9 @@ body {
 .game-board {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
-  padding-bottom: calc(60px + var(--safe-bottom-pad));
+  padding-bottom: calc(50px + var(--safe-bottom-pad));
 }
 
 /* — Foundation — */
@@ -181,11 +181,11 @@ body {
   margin-inline: auto;
   margin-bottom: 6px;
   width: 100%;
-  max-width: clamp(140px, 46vw, 360px); /* Adjusted for iPhone */
+  max-width: clamp(150px, 48vw, 380px);
 }
 .foundation-slot {
   aspect-ratio: 2.5 / 3.5;
-  min-height: 56px;
+  min-height: 60px;
   max-width: var(--card-max);
   background: var(--slot-bg);
   border: 2px dashed var(--slot-border);
@@ -202,10 +202,10 @@ body {
 /* — Stock / Waste — */
 .stock-waste-area {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
   width: 100%;
-  max-width: clamp(120px, 44vw, 200px);
+  max-width: clamp(130px, 45vw, 200px);
   margin-inline: auto;
 }
 .stock-container,
@@ -216,7 +216,7 @@ body {
 .stock,
 .waste {
   aspect-ratio: 2.5 / 3.5;
-  min-height: 56px;
+  min-height: 60px;
   max-width: var(--card-max);
   background: var(--slot-bg);
   border: 2px solid var(--slot-border);
@@ -240,15 +240,15 @@ body {
   gap: 6px;
   flex: 1;
   width: 100%;
-  max-width: clamp(220px, 84vw, 740px);
+  max-width: clamp(230px, 85vw, 760px);
   margin-inline: auto;
-  padding-bottom: calc(60px + var(--safe-bottom-pad));
+  padding-bottom: calc(50px + var(--safe-bottom-pad));
 }
 .tableau-slot {
   background: var(--slot-bg);
   border: 2px dashed var(--slot-border);
   border-radius: 10px;
-  min-height: clamp(84px, 25dvh, 320px);
+  min-height: clamp(90px, 26dvh, 330px);
   padding: 4px;
   position: relative;
   transition: border-color 0.2s;
@@ -276,7 +276,7 @@ body {
   user-select: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s, opacity 0.2s;
-  touch-action: none; /* Prevent iOS scroll interference */
+  touch-action: none;
 }
 .card:active {
   cursor: grabbing;
@@ -352,7 +352,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding-top: env(safe-area-inset-top); /* Avoid Dynamic Island */
+  padding-top: env(safe-area-inset-top);
 }
 .modal.hidden {
   display: none;
@@ -414,88 +414,79 @@ body {
   .game-header {
     flex-wrap: wrap;
     align-items: flex-start;
-    padding: 4px calc(6px + env(safe-area-inset-right)) 4px
-             calc(6px + env(safe-area-inset-left));
+    padding: 2px calc(4px + env(safe-area-inset-right)) 2px
+             calc(4px + env(safe-area-inset-left));
   }
   .game-info {
-    gap: 8px;
-    font-size: 10px;
+    gap: 6px;
+    font-size: 9px;
   }
   .game-controls {
-    gap: 5px;
+    gap: 3px;
   }
   .btn {
-    min-width: 70px;
-    min-height: 44px; /* Apple HIG */
-    font-size: 11px;
-    padding: 6px 10px;
+    min-width: 68px;
+    padding: 5px 8px;
+    font-size: 10px;
   }
   .foundation-area {
-    grid-template-columns: repeat(2, 1fr); /* 2x2 grid for smaller screens */
-    max-width: clamp(130px, 45vw, 320px);
-    gap: 5px;
+    grid-template-columns: repeat(2, 1fr);
+    max-width: clamp(130px, 45vw, 340px);
+    gap: 4px;
   }
   .stock-waste-area {
     max-width: clamp(110px, 43vw, 180px);
-    gap: 8px;
+    gap: 6px;
   }
   .tableau-area {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 5px;
-    max-width: clamp(200px, 82vw, 680px);
+    gap: 4px;
+    max-width: clamp(200px, 82vw, 700px);
   }
   .tableau-slot:nth-child(n+5) {
     grid-column: span 2;
   }
   .tableau-slot {
-    min-height: clamp(80px, 23dvh, 300px);
+    min-height: clamp(85px, 24dvh, 310px);
   }
 }
 
-/* Height-based adjustments for iPhone 13 Mini and taller screens */
 @media (max-height: 844px) { /* iPhone 13, 14, 15, 16 */
   :root {
-    --stack-open: calc(var(--card-h) * -0.46);
-    --stack-closed: calc(var(--card-h) * -0.38);
-    --card-max: clamp(36px, 11vw, 70px);
+    --stack-open: calc(var(--card-h) * -0.38);
+    --stack-closed: calc(var(--card-h) * -0.30);
+    --card-max: clamp(38px, 11.5vw, 72px);
   }
   .tableau-slot {
-    min-height: clamp(78px, 22dvh, 280px);
-  }
-  .tableau-area {
-    gap: 5px;
-  }
-  .game-container::after {
-    height: calc(100px + var(--safe-bottom-pad));
-  }
-}
-
-@media (max-height: 734px) { /* iPhone 13 Mini */
-  :root {
-    --stack-open: calc(var(--card-h) * -0.50);
-    --stack-closed: calc(var(--card-h) * -0.42);
-    --card-max: clamp(34px, 10.5vw, 66px);
-  }
-  .tableau-slot {
-    min-height: clamp(74px, 20dvh, 260px);
-  }
-  .tableau-area {
-    gap: 4px;
+    min-height: clamp(80px, 23dvh, 300px);
   }
   .game-container::after {
     height: calc(90px + var(--safe-bottom-pad));
   }
 }
 
-/* Taller iPhones (Pro Max, Plus) */
-@media (min-width: 428px) and (min-height: 926px) { /* iPhone 14 Plus, 15 Pro Max, 16 Pro Max */
+@media (max-height: 734px) { /* iPhone 13 Mini */
   :root {
-    --stack-open: calc(var(--card-h) * -0.40);
-    --stack-closed: calc(var(--card-h) * -0.32);
-    --card-max: clamp(40px, 12vw, 78px);
+    --stack-open: calc(var(--card-h) * -0.42);
+    --stack-closed: calc(var(--card-h) * -0.34);
+    --card-max: clamp(36px, 11vw, 68px);
   }
   .tableau-slot {
-    min-height: clamp(88px, 26dvh, 340px);
+    min-height: clamp(75px, 21dvh, 280px);
+  }
+  .game-container::after {
+    height: calc(80px + var(--safe-bottom-pad));
+  }
+}
+
+@media (min-width: 428px) and (min-height: 926px) { /* iPhone 14 Plus, 15 Pro Max, 16 Pro Max */
+  :root {
+    --stack-open: calc(var(--card-h) * -0.32);
+    --stack-closed: calc(var(--card-h) * -0.25);
+    --card-max: clamp(42px, 12.5vw, 80px);
+  }
+  .tableau-slot {
+    min-height: clamp(95px, 27dvh, 350px);
   }
 }
 
@@ -518,3 +509,4 @@ body {
 [data-deck="blue"] .card.face-down::before {
   content: "♠";
 }
+
