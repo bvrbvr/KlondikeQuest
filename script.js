@@ -52,7 +52,9 @@ const elements = {
     shareResultBtn: document.getElementById('share-result-btn'),
     playAgainBtn: document.getElementById('play-again-btn'),
     winTime: document.getElementById('win-time'),
-    winMoves: document.getElementById('win-moves')
+    winMoves: document.getElementById('win-moves'),
+    themeToggleBtn: document.getElementById('theme-toggle-btn'),
+    deckToggleBtn: document.getElementById('deck-toggle-btn')
 };
 
 // Инициализация игры
@@ -63,6 +65,7 @@ function initGame() {
     updateDisplay();
     setupEventListeners();
     applyTheme();
+    applyDeck();
     startTimer();
     // Проверка отсутствия ходов на старте (на случай тупика после раздачи)
     notifyNoMovesIfNeeded();
@@ -217,6 +220,14 @@ function setupEventListeners() {
         hideWinModal();
         newGame();
     });
+    // Переключение темы
+    if (elements.themeToggleBtn) {
+        elements.themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+    // Переключение колоды
+    if (elements.deckToggleBtn) {
+        elements.deckToggleBtn.addEventListener('click', toggleDeck);
+    }
     
     // Stock клик
     elements.stock.addEventListener('click', drawFromStock);
@@ -813,7 +824,11 @@ function startTimer() {
 
 // Применение темы Telegram
 function applyTheme() {
-    if (tg && tg.themeParams) {
+    // Приоритет локального сохранения пользователя
+    const savedTheme = safeStorageGet('kq_theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (tg && tg.themeParams) {
         const theme = tg.themeParams;
         
         if (theme.bg_color) {
@@ -833,6 +848,49 @@ function applyTheme() {
         const isDark = theme.bg_color && theme.bg_color.toLowerCase().includes('1a1a1a');
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     }
+    updateThemeToggleLabel();
+}
+
+// Применение выбранной колоды (оформление рубашки)
+function applyDeck() {
+    const savedDeck = safeStorageGet('kq_deck') || 'blue';
+    document.documentElement.setAttribute('data-deck', savedDeck);
+    updateDeckToggleLabel();
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    safeStorageSet('kq_theme', next);
+    updateThemeToggleLabel();
+}
+
+function toggleDeck() {
+    const current = document.documentElement.getAttribute('data-deck') || 'blue';
+    const next = current === 'blue' ? 'red' : 'blue';
+    document.documentElement.setAttribute('data-deck', next);
+    safeStorageSet('kq_deck', next);
+    updateDeckToggleLabel();
+}
+
+function updateThemeToggleLabel() {
+    if (!elements.themeToggleBtn) return;
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    elements.themeToggleBtn.textContent = 'Тема: ' + (current === 'dark' ? 'Тёмная' : 'Светлая');
+}
+
+function updateDeckToggleLabel() {
+    if (!elements.deckToggleBtn) return;
+    const current = document.documentElement.getAttribute('data-deck') || 'blue';
+    elements.deckToggleBtn.textContent = 'Колода: ' + (current === 'red' ? 'Красная' : 'Синяя');
+}
+
+function safeStorageGet(key) {
+    try { return localStorage.getItem(key); } catch (_) { return null; }
+}
+function safeStorageSet(key, val) {
+    try { localStorage.setItem(key, val); } catch (_) {}
 }
 
 // Поиск лучшей цели для автоматического перемещения

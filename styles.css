@@ -1,593 +1,277 @@
-/* CSS переменные для поддержки тем Telegram */
-:root {
-    --bg-color: #ffffff;
-    --text-color: #000000;
-    --card-bg: #ffffff;
-    --card-border: #cccccc;
-    --slot-bg: #f0f0f0;
-    --slot-border: #dddddd;
-    --btn-primary-bg: #007bff;
-    --btn-primary-color: #ffffff;
-    --btn-secondary-bg: #6c757d;
-    --btn-secondary-color: #ffffff;
-    --modal-bg: rgba(0, 0, 0, 0.5);
-    --modal-content-bg: #ffffff;
-    --red-suit: #dc3545;
-    --black-suit: #000000;
-    /* Управляемые переменные размеров и смещений */
-    /* Чуть меньшая глубина перекрытия, чтобы было видно масть нижней карты */
-    --stack-open: -32px;
-    --stack-closed: -28px;
+/* =========================
+   Solitaire — style.css (mobile-safe, iPhone 16 ready)
+   ========================= */
+
+/* === Базовые переменные и тема === */
+:root{
+  --bg-color:#ffffff; --text-color:#000000;
+  --card-bg:#ffffff; --card-border:#cccccc;
+  --slot-bg:#f0f0f0; --slot-border:#dddddd;
+  --btn-primary-bg:#007bff; --btn-primary-color:#ffffff;
+  --btn-secondary-bg:#6c757d; --btn-secondary-color:#ffffff;
+  --modal-bg:rgba(0,0,0,0.5); --modal-content-bg:#ffffff;
+  --red-suit:#dc3545; --black-suit:#000000;
+
+  /* размеры */
+  --card-max:clamp(42px, 12vw, 80px);  /* ширина карты */
+  --card-h:calc(var(--card-max) * 1.4);/* высота карты по соотношению 2.5:3.5 */
+  --font-s:clamp(8px, 2.3vw, 12px);
+  --font-m:clamp(11px, 2.7vw, 16px);
+
+  /* глубина стопок ПРОПОРЦИОНАЛЬНО высоте карты */
+  --stack-open:calc(var(--card-h) * -0.40);
+  --stack-closed:calc(var(--card-h) * -0.32);
+
+  /* safe areas / header */
+  --ui-header-h:52px;
+  --safe-bottom-pad:max(44px, env(safe-area-inset-bottom)); /* больше воздуха для home-indicator */
 }
 
-/* Темная тема */
-[data-theme="dark"] {
-    --bg-color: #1a1a1a;
-    --text-color: #ffffff;
-    --card-bg: #2d2d2d;
-    --card-border: #444444;
-    --slot-bg: #333333;
-    --slot-border: #555555;
-    --btn-primary-bg: #007bff;
-    --btn-primary-color: #ffffff;
-    --btn-secondary-bg: #6c757d;
-    --btn-secondary-color: #ffffff;
-    --modal-bg: rgba(0, 0, 0, 0.7);
-    --modal-content-bg: #2d2d2d;
-    --red-suit: #ff6b6b;
-    --black-suit: #ffffff;
+[data-theme="dark"]{
+  --bg-color:#1a1a1a; --text-color:#ffffff;
+  --card-bg:#2d2d2d; --card-border:#444444;
+  --slot-bg:#333333; --slot-border:#555555;
+  --btn-primary-bg:#007bff; --btn-primary-color:#ffffff;
+  --btn-secondary-bg:#6c757d; --btn-secondary-color:#ffffff;
+  --modal-bg:rgba(0,0,0,0.7); --modal-content-bg:#2d2d2d;
+  --red-suit:#ff6b6b; --black-suit:#ffffff;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg-color); color:var(--text-color);
+  min-height:100dvh;                 /* фикс iOS Safari */
+  overflow-x:hidden; overscroll-behavior-y:none;
+  -webkit-tap-highlight-color:transparent;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    min-height: 100vh;
-    overflow-x: hidden;
+/* === Контейнер игры === */
+.game-container{
+  width:100%;
+  min-height:100dvh;
+  padding: calc(8px + env(safe-area-inset-top))
+           calc(8px + env(safe-area-inset-right))
+           calc(8px + var(--safe-bottom-pad))
+           calc(8px + env(safe-area-inset-left));
+  display:flex; flex-direction:column; gap:10px;
+
+  /* свой скролл + запас под хедер и home-indicator */
+  overflow-y:auto;
+  scroll-padding-top:calc(var(--ui-header-h) + 8px);
+  scroll-padding-bottom:calc(180px + var(--safe-bottom-pad));
+  background:var(--bg-color);
 }
 
-.game-container {
-    max-width: 100vw;
-    min-height: 100vh;
-    padding: calc(10px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-    display: flex;
-    flex-direction: column;
+/* виртуальный «отбойник» — гарантирует чистую зону над жестовой панелью */
+.game-container::after{
+  content:"";
+  display:block;
+  height:calc(140px + var(--safe-bottom-pad));
+  flex:0 0 auto;
 }
 
-/* Заголовок игры */
-.game-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 10px;
+/* === Заголовок === */
+.game-header{
+  position:sticky; top:env(safe-area-inset-top); z-index:5;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+  padding: 8px calc(10px + env(safe-area-inset-right)) 6px
+           calc(10px + env(safe-area-inset-left));
+  min-height:var(--ui-header-h);
+  background:var(--bg-color);
+}
+.game-info{display:flex;gap:14px;font-size:12px}
+.timer,.moves{display:flex;flex-direction:column;align-items:flex-start}
+.timer-label,.moves-label{font-weight:600;opacity:.9}
+.timer-value,.moves-value{font-size:var(--font-m);font-weight:800}
+
+.game-controls{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  padding:7px 12px;border:0;border-radius:8px;
+  font-size:13px;font-weight:600;min-height:34px;min-width:80px;
+  cursor:pointer;transition:opacity .2s, transform .2s;
+}
+.btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-color)}
+.btn-secondary{background:var(--btn-secondary-bg);color:var(--btn-secondary-color)}
+.btn:hover{opacity:.9;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+
+/* === Поле игры === */
+.game-board{
+  display:flex; flex-direction:column; gap:12px; flex:1;
+  padding-bottom:calc(70px + var(--safe-bottom-pad)); /* ещё запас снизу */
 }
 
-.game-info {
-    display: flex;
-    gap: 20px;
-    font-size: 14px;
+/* — Foundation — */
+.foundation-area{
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px; margin-inline:auto; margin-bottom:8px;
+  width:100%; max-width:clamp(150px,48vw,400px);
+}
+.foundation-slot{
+  aspect-ratio:2.5/3.5;
+  min-height:60px; max-width:var(--card-max);
+  background:var(--slot-bg); border:2px dashed var(--slot-border);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  transition:border-color .2s;
+}
+.foundation-slot:hover{border-color:var(--btn-primary-bg)}
+
+/* — Stock / Waste — */
+.stock-waste-area{
+  display:flex; gap:12px; justify-content:center;
+  width:100%; max-width:clamp(130px,45vw,220px);
+  margin-inline:auto;
+}
+.stock-container,.waste-container{flex:1;max-width:var(--card-max)}
+.stock,.waste{
+  aspect-ratio:2.5/3.5; min-height:60px; max-width:var(--card-max);
+  background:var(--slot-bg); border:2px solid var(--slot-border);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; transition:border-color .2s;
+}
+.stock:hover,.waste:hover{border-color:var(--btn-primary-bg)}
+
+/* — Tableau — */
+.tableau-area{
+  display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px; flex:1; width:100%;
+  max-width:clamp(230px,85vw,800px);
+  margin-inline:auto;
+  padding-bottom:calc(70px + var(--safe-bottom-pad));
+}
+.tableau-slot{
+  background:var(--slot-bg); border:2px dashed var(--slot-border);
+  border-radius:10px;
+  min-height:clamp(92px, 27dvh, 340px);
+  padding:5px; position:relative; transition:border-color .2s;
+}
+.tableau-slot:hover{border-color:var(--btn-primary-bg)}
+
+/* === Карты === */
+.card{
+  width:100%; max-width:var(--card-max);
+  aspect-ratio:2.5/3.5; background:var(--card-bg);
+  border:1px solid var(--card-border); border-radius:8px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:4px; font-size:var(--font-s); font-weight:800;
+  cursor:grab; position:relative; user-select:none;
+  box-shadow:0 2px 4px rgba(0,0,0,.08);
+  transition:transform .2s, opacity .2s;
+}
+.card:active{cursor:grabbing}
+.card.face-down{
+  background:linear-gradient(45deg,#2c3e50,#34495e); color:transparent;
+}
+.card.face-down::before{
+  content:"♠"; position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%); font-size:calc(var(--font-m) + 8px);
+  color:var(--text-color); opacity:.85;
+}
+.card.red{color:var(--red-suit)} .card.black{color:var(--black-suit)}
+.card-top,.card-bottom{display:flex;justify-content:space-between;align-items:flex-start}
+.card-bottom{transform:rotate(180deg)}
+.card-value{font-size:calc(var(--font-s) + 2px);font-weight:900}
+.card-suit{font-size:calc(var(--font-s) + 4px)}
+
+/* — Стек карт в tableau — (пропорциональное перекрытие) */
+.tableau-slot .card{margin-bottom:var(--stack-open); z-index:1}
+.tableau-slot .card.face-down{margin-bottom:var(--stack-closed)}
+.tableau-slot .card:last-child{margin-bottom:0}
+
+/* === Drag & Drop === */
+.card.dragging{opacity:.9; transform:scale(1.03) rotate(1.5deg); z-index:1000}
+.foundation-slot.drag-over,.tableau-slot.drag-over,.card.drag-over{
+  border-color:var(--btn-primary-bg); background-color:rgba(0,123,255,.08);
 }
 
-.timer, .moves {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+/* === Модалка === */
+.modal{
+  position:fixed; inset:0; background:var(--modal-bg);
+  display:flex; align-items:center; justify-content:center; z-index:1000;
+}
+.modal.hidden{display:none}
+.modal-content{
+  background:var(--modal-content-bg); padding:22px; border-radius:14px;
+  text-align:center; max-width:min(92%,520px); max-height:85dvh; overflow:auto;
+}
+.modal-content h2,.modal-content p{color:var(--text-color)}
+.win-stats{margin:16px 0; padding:14px; background:var(--slot-bg); border-radius:10px}
+.win-stats p{margin:6px 0; font-weight:600}
+
+/* === Анимации === */
+@keyframes cardFlip{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
+.card.flipping{animation:cardFlip .3s ease-in-out}
+@keyframes cardMove{from{transform:scale(1)}50%{transform:scale(1.05)}to{transform:scale(1)}}
+.card.moving{animation:cardMove .2s ease-in-out}
+
+/* === Perf / HiDPI === */
+.card,.slot{will-change:transform}
+@media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){.card{border-width:.5px}}
+
+/* =========================
+   Responsive
+   ========================= */
+@media (max-width:768px){
+  .game-header{flex-wrap:wrap; align-items:flex-start}
+  .game-info{gap:10px}
+  .foundation-area{grid-template-columns:repeat(2,1fr)}
+  .tableau-area{grid-template-columns:repeat(4,1fr)}
+  .tableau-slot:nth-child(n+5){grid-column:span 2}
 }
 
-.timer-label, .moves-label {
-    font-weight: 600;
-    margin-bottom: 2px;
+/* По высоте экрана — сжимаем стопки, если «высоты мало» */
+@media (max-height:830px){
+  :root{
+    --stack-open:calc(var(--card-h) * -0.36);
+    --stack-closed:calc(var(--card-h) * -0.29);
+  }
+  .tableau-slot{min-height:clamp(88px, 25dvh, 300px)}
+}
+@media (max-height:760px){
+  :root{
+    --stack-open:calc(var(--card-h) * -0.33);
+    --stack-closed:calc(var(--card-h) * -0.26);
+  }
+  .tableau-slot{min-height:clamp(84px, 23dvh, 280px)}
+}
+@media (max-height:700px){
+  :root{
+    --stack-open:calc(var(--card-h) * -0.30);
+    --stack-closed:calc(var(--card-h) * -0.24);
+  }
+  .tableau-slot{min-height:clamp(80px, 21dvh, 260px)}
 }
 
-.timer-value, .moves-value {
-    font-size: 16px;
-    font-weight: bold;
+/* Ultra-wide phones (Plus/Max) — немного можно вернуть высоту */
+@media (min-width:420px) and (min-height:880px){
+  :root{
+    --stack-open:calc(var(--card-h) * -0.38);
+    --stack-closed:calc(var(--card-h) * -0.30);
+  }
+  .tableau-slot{min-height:clamp(96px, 28dvh, 340px)}
 }
 
-.game-controls {
-    display: flex;
-    gap: 10px;
+/* ≥1200px — desktop */
+@media (min-width:1200px){
+  .foundation-area{max-width:520px}
+  .tableau-area{max-width:840px}
+  .card{max-width:100px}
+  .foundation-slot,.stock-container,.waste-container{max-width:100px}
 }
 
-.btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 80px;
+/* === Варианты колод (рубашка) === */
+[data-deck="red"] .card.face-down{
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255,255,255,.25) 0 14%, transparent 15%),
+    radial-gradient(circle at 90% 90%, rgba(255,255,255,.25) 0 14%, transparent 15%),
+    repeating-linear-gradient(45deg, #b3001b 0 8px, #d00024 8px 16px);
 }
+[data-deck="red"] .card.face-down::before{ content:"♦"; color:#fff; opacity:.95 }
 
-.btn-primary {
-    background-color: var(--btn-primary-bg);
-    color: var(--btn-primary-color);
+[data-deck="blue"] .card.face-down{
+  background:linear-gradient(45deg,#2c3e50,#34495e);
 }
-
-.btn-secondary {
-    background-color: var(--btn-secondary-bg);
-    color: var(--btn-secondary-color);
-}
-
-.btn:hover {
-    opacity: 0.8;
-    transform: translateY(-1px);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-/* Основное игровое поле */
-.game-board {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    flex: 1;
-}
-
-/* Foundation область */
-.foundation-area {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.foundation-slot {
-    aspect-ratio: 2.5/3.5;
-    background-color: var(--slot-bg);
-    border: 2px dashed var(--slot-border);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 60px;
-    max-width: 80px;
-    transition: all 0.2s ease;
-}
-
-.foundation-slot:hover {
-    border-color: var(--btn-primary-bg);
-}
-
-/* Stock и Waste область */
-.stock-waste-area {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-    justify-content: center;
-    max-width: 200px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.stock-container, .waste-container {
-    flex: 1;
-    max-width: 80px;
-}
-
-.stock, .waste {
-    aspect-ratio: 2.5/3.5;
-    background-color: var(--slot-bg);
-    border: 2px solid var(--slot-border);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 60px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.stock:hover, .waste:hover {
-    border-color: var(--btn-primary-bg);
-}
-
-/* Tableau область */
-.tableau-area {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
-    flex: 1;
-    min-height: 200px;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.tableau-slot {
-    background-color: var(--slot-bg);
-    border: 2px dashed var(--slot-border);
-    border-radius: 8px;
-    min-height: 120px;
-    padding: 5px;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.tableau-slot:hover {
-    border-color: var(--btn-primary-bg);
-}
-
-/* Карты */
-.card {
-    width: 100%;
-    max-width: 80px;
-    aspect-ratio: 2.5/3.5;
-    background-color: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 4px;
-    font-size: 12px;
-    font-weight: bold;
-    cursor: grab;
-    transition: all 0.2s ease;
-    position: relative;
-    user-select: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.card:active {
-    cursor: grabbing;
-}
-
-.card.face-down {
-    background: linear-gradient(45deg, #2c3e50, #34495e);
-    color: transparent;
-}
-
-.card.face-down::before {
-    content: "♠";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 24px;
-    color: var(--text-color);
-}
-
-.card.red {
-    color: var(--red-suit);
-}
-
-.card.black {
-    color: var(--black-suit);
-}
-
-.card-value {
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.card-suit {
-    font-size: 16px;
-}
-
-.card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.card-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    transform: rotate(180deg);
-}
-
-/* Карты в tableau */
-.tableau-slot .card {
-    margin-bottom: var(--stack-open);
-    position: relative;
-    z-index: 1;
-}
-
-.tableau-slot .card:last-child {
-    margin-bottom: 0;
-}
-
-.tableau-slot .card.face-down {
-    margin-bottom: var(--stack-closed);
-}
-
-/* Drag and Drop */
-.card.dragging {
-    opacity: 0.8;
-    transform: rotate(5deg);
-    z-index: 1000;
-}
-
-.foundation-slot.drag-over,
-.tableau-slot.drag-over,
-.card.drag-over {
-    border-color: var(--btn-primary-bg);
-    background-color: rgba(0, 123, 255, 0.08);
-}
-
-/* Модальное окно */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: var(--modal-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal.hidden {
-    display: none;
-}
-
-.modal-content {
-    background-color: var(--modal-content-bg);
-    padding: 30px;
-    border-radius: 12px;
-    text-align: center;
-    max-width: 90%;
-    max-height: 90%;
-    overflow-y: auto;
-}
-
-.modal-content h2 {
-    margin-bottom: 15px;
-    color: var(--text-color);
-}
-
-.modal-content p {
-    margin-bottom: 20px;
-    color: var(--text-color);
-}
-
-.win-stats {
-    margin: 20px 0;
-    padding: 15px;
-    background-color: var(--slot-bg);
-    border-radius: 8px;
-}
-
-.win-stats p {
-    margin: 5px 0;
-    font-weight: 500;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .game-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .game-info {
-        justify-content: space-between;
-    }
-    
-    .game-controls {
-        justify-content: center;
-    }
-    
-    .foundation-area {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-        max-width: 200px;
-    }
-    
-    .tableau-area {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-        max-width: 350px;
-    }
-    
-    .tableau-slot:nth-child(n+5) {
-        grid-column: span 2;
-    }
-    
-    .card {
-        font-size: 10px;
-        max-width: 60px;
-    }
-    
-    .card-value {
-        font-size: 12px;
-    }
-    
-    .card-suit {
-        font-size: 14px;
-    }
-    
-    .foundation-slot {
-        max-width: 60px;
-    }
-    
-    .stock-container, .waste-container {
-        max-width: 60px;
-    }
-}
-
-@media (max-width: 480px) {
-    .game-container {
-        padding: 5px;
-    }
-    
-    .foundation-area {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 5px;
-        max-width: 160px;
-    }
-    
-    .tableau-area {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 5px;
-        max-width: 250px;
-    }
-    
-    .tableau-slot:nth-child(n+4) {
-        grid-column: span 2;
-    }
-    
-    .stock-waste-area {
-        gap: 10px;
-        max-width: 140px;
-    }
-    
-    .stock-container, .waste-container {
-        max-width: 50px;
-    }
-    
-    .card {
-        max-width: 45px;
-        font-size: 8px;
-    }
-    
-    .foundation-slot {
-        max-width: 45px;
-    }
-}
-
-/* Точные брейкпоинты под iPhone ширины */
-/* 375px (iPhone 7/8/X/12 mini и т.п.) */
-@media (max-width: 375px) {
-    .foundation-area { max-width: 150px; gap: 6px; }
-    .tableau-area { max-width: 230px; gap: 6px; }
-    .stock-waste-area { max-width: 130px; gap: 8px; }
-    .card { max-width: 42px; font-size: 8px; }
-    .card-value { font-size: 11px; }
-    .card-suit { font-size: 13px; }
-    .foundation-slot, .stock-container, .waste-container { max-width: 42px; }
-    :root { --stack-open: -28px; --stack-closed: -24px; }
-}
-
-/* 390–393px (iPhone 12/13/14/15 и 14/15 Pro) */
-@media (min-width: 390px) and (max-width: 393px) {
-    .foundation-area { max-width: 170px; gap: 8px; }
-    .tableau-area { max-width: 255px; gap: 8px; }
-    .stock-waste-area { max-width: 140px; gap: 10px; }
-    .card { max-width: 48px; font-size: 9px; }
-    .card-value { font-size: 12px; }
-    .card-suit { font-size: 14px; }
-    .foundation-slot, .stock-container, .waste-container { max-width: 48px; }
-    :root { --stack-open: -30px; --stack-closed: -26px; }
-}
-
-/* 412–414px (XR/11/12 Pro Max/13 Pro Max/14/15 Plus) */
-@media (min-width: 412px) and (max-width: 414px) {
-    .foundation-area { max-width: 190px; gap: 10px; }
-    .tableau-area { max-width: 280px; gap: 10px; }
-    .stock-waste-area { max-width: 160px; gap: 12px; }
-    .card { max-width: 54px; font-size: 10px; }
-    .card-value { font-size: 13px; }
-    .card-suit { font-size: 15px; }
-    .foundation-slot, .stock-container, .waste-container { max-width: 54px; }
-    :root { --stack-open: -32px; --stack-closed: -28px; }
-}
-
-/* 428–430px (12/13/14/15 Pro Max, 14 Plus, 15 Plus) */
-@media (min-width: 428px) and (max-width: 430px) {
-    .foundation-area { max-width: 210px; gap: 12px; }
-    .tableau-area { max-width: 300px; gap: 12px; }
-    .stock-waste-area { max-width: 180px; gap: 12px; }
-    .card { max-width: 58px; font-size: 11px; }
-    .card-value { font-size: 14px; }
-    .card-suit { font-size: 16px; }
-    .foundation-slot, .stock-container, .waste-container { max-width: 58px; }
-    :root { --stack-open: -34px; --stack-closed: -30px; }
-}
-
-/* 448px (iPhone 16 Plus/Pro Max шире) */
-@media (min-width: 448px) and (max-width: 460px) {
-    .foundation-area { max-width: 230px; gap: 12px; }
-    .tableau-area { max-width: 320px; gap: 12px; }
-    .stock-waste-area { max-width: 190px; gap: 14px; }
-    .card { max-width: 62px; font-size: 12px; }
-    .card-value { font-size: 15px; }
-    .card-suit { font-size: 17px; }
-    .foundation-slot, .stock-container, .waste-container { max-width: 62px; }
-    :root { --stack-open: -36px; --stack-closed: -31px; }
-}
-
-/* Анимации */
-@keyframes cardFlip {
-    from {
-        transform: rotateY(0deg);
-    }
-    to {
-        transform: rotateY(180deg);
-    }
-}
-
-.card.flipping {
-    animation: cardFlip 0.3s ease-in-out;
-}
-
-@keyframes cardMove {
-    from {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    to {
-        transform: scale(1);
-    }
-}
-
-.card.moving {
-    animation: cardMove 0.2s ease-in-out;
-}
-
-/* Улучшения для производительности */
-.card, .slot {
-    will-change: transform;
-}
-
-/* Поддержка высокого DPI */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    .card {
-        border-width: 0.5px;
-    }
-}
-
-/* Большие экраны */
-@media (min-width: 1200px) {
-    .foundation-area {
-        max-width: 500px;
-    }
-    
-    .tableau-area {
-        max-width: 800px;
-    }
-    
-    .card {
-        max-width: 100px;
-    }
-    
-    .foundation-slot {
-        max-width: 100px;
-    }
-    
-    .stock-container, .waste-container {
-        max-width: 100px;
-    }
-}
+[data-deck="blue"] .card.face-down::before{ content:"♠" }
