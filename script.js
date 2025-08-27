@@ -1,19 +1,23 @@
 // Инициализация Telegram Web App
 let tg;
 if (window.Telegram && window.Telegram.WebApp) {
-    tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+	tg = window.Telegram.WebApp;
+	tg.ready();
+	tg.expand();
+	// Полностью отключаем тактильную отдачу SDK (версии ниже 6.1 спамят предупреждения)
+	if (tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === 'function') {
+		try { tg.HapticFeedback.impactOccurred = function noop() {}; } catch (e) {}
+	}
 }
 
 // Константы игры
 const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const SUIT_SYMBOLS = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠'
+	hearts: '♥',
+	diamonds: '♦',
+	clubs: '♣',
+	spades: '♠'
 };
 
 // Состояние игры
@@ -234,29 +238,27 @@ function setupDragAndDrop() {
 
 // Обработка начала перетаскивания
 function handleDragStart(e) {
-    if (e.target.classList.contains('card') && e.target.draggable) {
-        e.target.classList.add('dragging');
-        gameState.draggedCards = getCardSequence(e.target);
-        gameState.dragSource = getCardLocation(e.target);
-        
-        // Тактильная отдача (отключена для версии 6.0)
-        // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-        //     try {
-        //         tg.HapticFeedback.impactOccurred('light');
-        //     } catch (error) {
-        //         console.log('HapticFeedback not supported');
-        //     }
-        // }
-    }
+	if (e.target.classList.contains('card') && e.target.draggable) {
+		e.target.classList.add('dragging');
+		gameState.draggedCards = getCardSequence(e.target);
+		gameState.dragSource = getCardLocation(e.target);
+		if (e.dataTransfer) {
+			e.dataTransfer.setData('text/plain', JSON.stringify({ from: 'card' }));
+			e.dataTransfer.effectAllowed = 'move';
+		}
+	}
 }
 
 // Обработка перетаскивания
 function handleDragOver(e) {
-    e.preventDefault();
-    if (e.target.classList.contains('card') || e.target.classList.contains('foundation-slot') || 
-        e.target.classList.contains('tableau-slot') || e.target.classList.contains('waste')) {
-        e.target.classList.add('drag-over');
-    }
+	e.preventDefault();
+	if (e.dataTransfer) {
+		e.dataTransfer.dropEffect = 'move';
+	}
+	if (e.target.classList.contains('card') || e.target.classList.contains('foundation-slot') || 
+		e.target.classList.contains('tableau-slot') || e.target.classList.contains('waste')) {
+		e.target.classList.add('drag-over');
+	}
 }
 
 // Обработка сброса
