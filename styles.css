@@ -493,14 +493,20 @@ body {
 /* === Deck Variants === */
 [data-deck="red"] .card.face-down {
   background:
-    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.25) 0 14%, transparent 15%),
-    radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.25) 0 14%, transparent 15%),
-    repeating-linear-gradient(45deg, #b3001b 0 8px, #d00024 8px 16px);
+    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.3) 0 12%, transparent 13%), /* Top-left white circle */
+    radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.3) 0 12%, transparent 13%), /* Bottom-right white circle */
+    repeating-linear-gradient(45deg, #b22222 0 10px, #ff4040 10px 20px); /* Darker red stripes */
 }
 [data-deck="red"] .card.face-down::before {
   content: "♦";
-  color: #fff;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: calc(var(--font-m) + 8px); /* Slightly larger for prominence */
+  color: #ffffff;
   opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); /* Add shadow for contrast */
 }
 
 [data-deck="blue"] .card.face-down {
@@ -509,4 +515,3 @@ body {
 [data-deck="blue"] .card.face-down::before {
   content: "♠";
 }
-

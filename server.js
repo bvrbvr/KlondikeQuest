@@ -36,11 +36,11 @@ function writeResults(results) {
 	fs.writeFileSync(DATA_FILE, JSON.stringify({ results }, null, 2), 'utf8');
 }
 
-app.get('/api/health', (req, res) => {
+app.get('/api/api/v1/health', (req, res) => {
 	res.json({ status: 'ok' });
 });
 
-app.post('/api/results', (req, res) => {
+app.post('/api/api/v1/results', (req, res) => {
 	const { userId, username, time, moves, date } = req.body || {};
 	if (typeof time !== 'number' || typeof moves !== 'number') {
 		return res.status(400).json({ error: 'Invalid payload' });
@@ -59,7 +59,7 @@ app.post('/api/results', (req, res) => {
 	res.json({ ok: true, entry });
 });
 
-app.get('/api/stats', (req, res) => {
+app.get('/api/api/v1/stats', (req, res) => {
 	const results = readResults();
 	const totalGames = results.length;
 	const bestTime = totalGames ? Math.min(...results.map(r => r.time)) : null;
