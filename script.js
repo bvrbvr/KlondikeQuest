@@ -247,6 +247,7 @@ function handleDragStart(e) {
 			e.dataTransfer.setData('text/plain', JSON.stringify({ from: 'card' }));
 			e.dataTransfer.effectAllowed = 'move';
 		}
+		try { console.log('DragStart sequence size:', gameState.draggedCards.length, 'from source:', gameState.dragSource); } catch (_) {}
 	}
 }
 
@@ -350,38 +351,26 @@ function setupTouchEvents() {
 
 // Получение последовательности карт
 function getCardSequence(cardElement) {
-    const cards = [];
-    const slot = cardElement.closest('.tableau-slot, .waste');
-    
-    if (!slot) {
-        // Если карта не в tableau или waste, возвращаем только её
-        return [{
-            suit: cardElement.dataset.suit,
-            value: cardElement.dataset.value
-        }];
-    }
-    
-    if (slot.classList.contains('waste')) {
-        // Если карта в waste, возвращаем только её
-        return [{
-            suit: cardElement.dataset.suit,
-            value: cardElement.dataset.value
-        }];
-    }
-    
-    const slotIndex = parseInt(slot.dataset.slot.split('-')[1]);
-    const cardIndex = parseInt(cardElement.dataset.cardIndex);
-    const tableau = gameState.tableau[slotIndex];
-    
-    // Возвращаем карту и все карты после неё в tableau
-    for (let i = cardIndex; i < tableau.length; i++) {
-        cards.push({
-            suit: tableau[i].suit,
-            value: tableau[i].value
-        });
-    }
-    
-    return cards;
+	// Определяем контейнер
+	const container = cardElement.closest('.tableau-slot, .waste, .foundation-slot');
+	if (!container) {
+		return [{ suit: cardElement.dataset.suit, value: cardElement.dataset.value }];
+	}
+	// Из waste и foundation тянется только одна карта (верхняя)
+	if (container.classList.contains('waste') || container.classList.contains('foundation-slot')) {
+		return [{ suit: cardElement.dataset.suit, value: cardElement.dataset.value }];
+	}
+	// Tableau: берём индекс столбца и индекс карты
+	const slotIndex = Number.isInteger(parseInt(cardElement.dataset.slotIndex))
+		? parseInt(cardElement.dataset.slotIndex)
+		: (container.dataset.slot && container.dataset.slot.includes('-') ? parseInt(container.dataset.slot.split('-')[1]) : 0);
+	const cardIndex = Number.isInteger(parseInt(cardElement.dataset.cardIndex)) ? parseInt(cardElement.dataset.cardIndex) : 0;
+	const tableau = gameState.tableau[slotIndex] || [];
+	const sequence = [];
+	for (let i = cardIndex; i < tableau.length; i++) {
+		sequence.push({ suit: tableau[i].suit, value: tableau[i].value });
+	}
+	return sequence.length ? sequence : [{ suit: cardElement.dataset.suit, value: cardElement.dataset.value }];
 }
 
 // Получение местоположения карты
