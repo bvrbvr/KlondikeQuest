@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Klondike Quest</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Информационная панель -->
+        <header class="game-header">
+            <div class="game-info">
+                <div class="timer">
+                    <span class="timer-label">Время:</span>
+                    <span id="timer" class="timer-value">00:00</span>
+                </div>
+                <div class="moves">
+                    <span class="moves-label">Ходы:</span>
+                    <span id="moves" class="moves-value">0</span>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button id="new-game-btn" class="btn btn-primary">Новая игра</button>
+                <button id="undo-btn" class="btn btn-secondary">Отменить</button>
+            </div>
+        </header>
+
+        <!-- Основное игровое поле -->
+        <main class="game-board">
+            <!-- Foundation (4 ячейки для финальных стопок) -->
+            <div class="foundation-area">
+                <div class="foundation-slot" data-slot="foundation-0" data-suit="hearts"></div>
+                <div class="foundation-slot" data-slot="foundation-1" data-suit="diamonds"></div>
+                <div class="foundation-slot" data-slot="foundation-2" data-suit="clubs"></div>
+                <div class="foundation-slot" data-slot="foundation-3" data-suit="spades"></div>
+            </div>
+
+            <!-- Stock и Waste -->
+            <div class="stock-waste-area">
+                <div class="stock-container">
+                    <div id="stock" class="stock" data-slot="stock">
+                        <!-- Колода закрытых карт -->
+                    </div>
+                </div>
+                <div class="waste-container">
+                    <div id="waste" class="waste" data-slot="waste">
+                        <!-- Область для открытых карт из колоды -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau (7 стопок для раскладки карт) -->
+            <div class="tableau-area">
+                <div class="tableau-slot" data-slot="tableau-0"></div>
+                <div class="tableau-slot" data-slot="tableau-1"></div>
+                <div class="tableau-slot" data-slot="tableau-2"></div>
+                <div class="tableau-slot" data-slot="tableau-3"></div>
+                <div class="tableau-slot" data-slot="tableau-4"></div>
+                <div class="tableau-slot" data-slot="tableau-5"></div>
+                <div class="tableau-slot" data-slot="tableau-6"></div>
+            </div>
+        </main>
+
+        <!-- Модальное окно победы -->
+        <div id="win-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Поздравляем!</h2>
+                <p>Вы собрали все карты!</p>
+                <div class="win-stats">
+                    <p>Время: <span id="win-time"></span></p>
+                    <p>Ходы: <span id="win-moves"></span></p>
+                </div>
+                <button id="share-result-btn" class="btn btn-primary">Поделиться результатом</button>
+                <button id="play-again-btn" class="btn btn-secondary">Играть снова</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

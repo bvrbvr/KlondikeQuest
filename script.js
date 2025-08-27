@@ -237,8 +237,12 @@ function handleDragStart(e) {
         gameState.dragSource = getCardLocation(e.target);
         
         // Тактильная отдача
-        if (tg && tg.HapticFeedback) {
-            tg.HapticFeedback.impactOccurred('light');
+        if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+            try {
+                tg.HapticFeedback.impactOccurred('light');
+            } catch (error) {
+                console.log('HapticFeedback not supported');
+            }
         }
     }
 }
@@ -262,7 +266,7 @@ function handleDrop(e) {
     if (!target) return;
     
     const targetLocation = getSlotLocation(target);
-    if (canMoveCards(gameState.draggedCards, targetLocation)) {
+    if (targetLocation && canMoveCards(gameState.draggedCards, targetLocation)) {
         moveCards(gameState.draggedCards, gameState.dragSource, targetLocation);
     }
     
@@ -335,11 +339,18 @@ function setupTouchEvents() {
 // Получение последовательности карт
 function getCardSequence(cardElement) {
     const cards = [];
-    let current = cardElement;
-    const slot = cardElement.closest('.tableau-slot');
+    const slot = cardElement.closest('.tableau-slot, .waste');
     
     if (!slot) {
-        // Если карта не в tableau, возвращаем только её
+        // Если карта не в tableau или waste, возвращаем только её
+        return [{
+            suit: cardElement.dataset.suit,
+            value: cardElement.dataset.value
+        }];
+    }
+    
+    if (slot.classList.contains('waste')) {
+        // Если карта в waste, возвращаем только её
         return [{
             suit: cardElement.dataset.suit,
             value: cardElement.dataset.value
@@ -378,6 +389,8 @@ function getCardLocation(cardElement) {
 
 // Получение местоположения слота
 function getSlotLocation(slotElement) {
+    if (!slotElement) return null;
+    
     if (slotElement.classList.contains('waste')) {
         return { type: 'waste', index: 0 };
     }
@@ -468,8 +481,12 @@ function moveCards(cards, source, target) {
     checkWin();
     
     // Тактильная отдача
-    if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred('medium');
+    if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+        try {
+            tg.HapticFeedback.impactOccurred('medium');
+        } catch (error) {
+            console.log('HapticFeedback not supported');
+        }
     }
 }
 
@@ -540,8 +557,12 @@ function drawFromStock() {
     updateDisplay();
     
     // Тактильная отдача
-    if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred('light');
+    if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+        try {
+            tg.HapticFeedback.impactOccurred('light');
+        } catch (error) {
+            console.log('HapticFeedback not supported');
+        }
     }
 }
 
@@ -559,8 +580,12 @@ function undoMove() {
     gameState.moves--;
     
     // Тактильная отдача
-    if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred('light');
+    if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+        try {
+            tg.HapticFeedback.impactOccurred('light');
+        } catch (error) {
+            console.log('HapticFeedback not supported');
+        }
     }
 }
 
