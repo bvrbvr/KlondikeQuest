@@ -269,8 +269,14 @@ function handleDrop(e) {
     if (!target) return;
     
     const targetLocation = getSlotLocation(target);
+    console.log('Drop target:', target, 'targetLocation:', targetLocation);
+    console.log('Dragged cards:', gameState.draggedCards, 'source:', gameState.dragSource);
+    
     if (targetLocation && canMoveCards(gameState.draggedCards, targetLocation)) {
+        console.log('Moving cards...');
         moveCards(gameState.draggedCards, gameState.dragSource, targetLocation);
+    } else {
+        console.log('Cannot move cards. targetLocation:', targetLocation, 'canMove:', targetLocation ? canMoveCards(gameState.draggedCards, targetLocation) : false);
     }
     
     clearDragState();
@@ -384,10 +390,27 @@ function getCardLocation(cardElement) {
         return { type: 'waste', index: 0 };
     }
     
-    return {
-        type: slot.dataset.slot ? slot.dataset.slot : 'tableau',
-        index: slot.dataset.slotIndex || parseInt(slot.dataset.slot.split('-')[1])
-    };
+    if (slot.classList.contains('foundation-slot')) {
+        const slotData = slot.dataset.slot;
+        if (slotData && slotData.startsWith('foundation-')) {
+            return { 
+                type: 'foundation', 
+                index: parseInt(slotData.split('-')[1]) 
+            };
+        }
+    }
+    
+    if (slot.classList.contains('tableau-slot')) {
+        const slotData = slot.dataset.slot;
+        if (slotData && slotData.startsWith('tableau-')) {
+            return { 
+                type: 'tableau', 
+                index: parseInt(slotData.split('-')[1]) 
+            };
+        }
+    }
+    
+    return null;
 }
 
 // Получение местоположения слота
@@ -426,13 +449,19 @@ function canMoveCards(cards, targetLocation) {
     if (!cards.length) return false;
     
     const firstCard = cards[0];
+    console.log('Checking if can move card:', firstCard, 'to:', targetLocation);
     
     if (targetLocation.type === 'foundation') {
-        return canMoveToFoundation(firstCard, targetLocation.index);
+        const canMove = canMoveToFoundation(firstCard, targetLocation.index);
+        console.log('Can move to foundation:', canMove);
+        return canMove;
     } else if (targetLocation.type === 'tableau') {
-        return canMoveToTableau(firstCard, targetLocation.index);
+        const canMove = canMoveToTableau(firstCard, targetLocation.index);
+        console.log('Can move to tableau:', canMove);
+        return canMove;
     }
     
+    console.log('Unknown target type:', targetLocation.type);
     return false;
 }
 
@@ -453,11 +482,25 @@ function canMoveToTableau(card, tableauIndex) {
     const tableau = gameState.tableau[tableauIndex];
     
     if (tableau.length === 0) {
-        return card.value === 'K';
+        const canMove = card.value === 'K';
+        console.log('Empty tableau, can move K:', canMove, 'card value:', card.value);
+        return canMove;
     }
     
     const topCard = tableau[tableau.length - 1];
-    return isOppositeColor(card.suit, topCard.suit) && getCardValue(card.value) === getCardValue(topCard.value) - 1;
+    const oppositeColor = isOppositeColor(card.suit, topCard.suit);
+    const correctValue = getCardValue(card.value) === getCardValue(topCard.value) - 1;
+    const canMove = oppositeColor && correctValue;
+    
+    console.log('Tableau check:', {
+        card: card,
+        topCard: topCard,
+        oppositeColor: oppositeColor,
+        correctValue: correctValue,
+        canMove: canMove
+    });
+    
+    return canMove;
 }
 
 // Получение числового значения карты
