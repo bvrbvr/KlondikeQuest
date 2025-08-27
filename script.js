@@ -219,6 +219,9 @@ function setupEventListeners() {
     
     // Touch события для мобильных устройств
     setupTouchEvents();
+    
+    // Двойной клик для тузов
+    setupDoubleClickEvents();
 }
 
 // Настройка Drag and Drop
@@ -236,14 +239,14 @@ function handleDragStart(e) {
         gameState.draggedCards = getCardSequence(e.target);
         gameState.dragSource = getCardLocation(e.target);
         
-        // Тактильная отдача
-        if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-            try {
-                tg.HapticFeedback.impactOccurred('light');
-            } catch (error) {
-                console.log('HapticFeedback not supported');
-            }
-        }
+        // Тактильная отдача (отключена для версии 6.0)
+        // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+        //     try {
+        //         tg.HapticFeedback.impactOccurred('light');
+        //     } catch (error) {
+        //         console.log('HapticFeedback not supported');
+        //     }
+        // }
     }
 }
 
@@ -395,10 +398,27 @@ function getSlotLocation(slotElement) {
         return { type: 'waste', index: 0 };
     }
     
-    return {
-        type: slotElement.dataset.slot ? slotElement.dataset.slot : 'tableau',
-        index: slotElement.dataset.slotIndex || parseInt(slotElement.dataset.slot.split('-')[1])
-    };
+    if (slotElement.classList.contains('foundation-slot')) {
+        const slotData = slotElement.dataset.slot;
+        if (slotData && slotData.startsWith('foundation-')) {
+            return { 
+                type: 'foundation', 
+                index: parseInt(slotData.split('-')[1]) 
+            };
+        }
+    }
+    
+    if (slotElement.classList.contains('tableau-slot')) {
+        const slotData = slotElement.dataset.slot;
+        if (slotData && slotData.startsWith('tableau-')) {
+            return { 
+                type: 'tableau', 
+                index: parseInt(slotData.split('-')[1]) 
+            };
+        }
+    }
+    
+    return null;
 }
 
 // Проверка возможности перемещения карт
@@ -480,14 +500,14 @@ function moveCards(cards, source, target) {
     // Проверка победы
     checkWin();
     
-    // Тактильная отдача
-    if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-        try {
-            tg.HapticFeedback.impactOccurred('medium');
-        } catch (error) {
-            console.log('HapticFeedback not supported');
-        }
-    }
+    // Тактильная отдача (отключена для версии 6.0)
+    // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+    //     try {
+    //         tg.HapticFeedback.impactOccurred('medium');
+    //     } catch (error) {
+    //         console.log('HapticFeedback not supported');
+    //     }
+    // }
 }
 
 // Сохранение хода
@@ -556,14 +576,14 @@ function drawFromStock() {
     
     updateDisplay();
     
-    // Тактильная отдача
-    if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-        try {
-            tg.HapticFeedback.impactOccurred('light');
-        } catch (error) {
-            console.log('HapticFeedback not supported');
-        }
-    }
+    // Тактильная отдача (отключена для версии 6.0)
+    // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+    //     try {
+    //         tg.HapticFeedback.impactOccurred('light');
+    //     } catch (error) {
+    //         console.log('HapticFeedback not supported');
+    //     }
+    // }
 }
 
 // Отмена хода
@@ -579,14 +599,14 @@ function undoMove() {
     updateDisplay();
     gameState.moves--;
     
-    // Тактильная отдача
-    if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
-        try {
-            tg.HapticFeedback.impactOccurred('light');
-        } catch (error) {
-            console.log('HapticFeedback not supported');
-        }
-    }
+    // Тактильная отдача (отключена для версии 6.0)
+    // if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+    //     try {
+    //         tg.HapticFeedback.impactOccurred('light');
+    //     } catch (error) {
+    //         console.log('HapticFeedback not supported');
+    //     }
+    // }
 }
 
 // Проверка победы
@@ -736,6 +756,39 @@ function findBestTarget(cardElement) {
     for (let i = 0; i < 7; i++) {
         if (canMoveToTableau(card, i)) {
             return { type: 'tableau', index: i };
+        }
+    }
+    
+    return null;
+}
+
+// Настройка двойного клика для тузов
+function setupDoubleClickEvents() {
+    document.addEventListener('dblclick', (e) => {
+        const card = e.target.closest('.card');
+        if (card && card.dataset.value === 'A') {
+            // Двойной клик на туз - пытаемся переместить в foundation
+            const target = findBestTargetForAce(card);
+            if (target) {
+                const cards = getCardSequence(card);
+                const source = getCardLocation(card);
+                moveCards(cards, source, target);
+            }
+        }
+    });
+}
+
+// Поиск подходящего foundation для туза
+function findBestTargetForAce(cardElement) {
+    const card = {
+        suit: cardElement.dataset.suit,
+        value: cardElement.dataset.value
+    };
+    
+    // Ищем пустой foundation для туза
+    for (let i = 0; i < 4; i++) {
+        if (canMoveToFoundation(card, i)) {
+            return { type: 'foundation', index: i };
         }
     }
     
