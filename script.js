@@ -656,6 +656,17 @@ function checkWin() {
                 ]
             });
         }
+        // Показ статистики (через MainButton после победы и горячая клавиша S)
+        async function showStatistics() {
+            const stats = await fetchStats();
+            showStatsPopup(stats);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 's') {
+                showStatistics();
+            }
+        });
     }
 }
 
@@ -673,19 +684,66 @@ function hideWinModal() {
 
 // Сохранение результата игры
 function saveGameResult() {
-    const result = {
-        time: gameState.timer,
-        moves: gameState.moves,
-        date: new Date().toISOString()
-    };
-    
-    // Сохранение в Telegram Cloud Storage
-    if (tg && tg.CloudStorage) {
-        tg.CloudStorage.setItem('bestResult', JSON.stringify(result));
-    }
-    
-    // Сохранение в localStorage как резерв
-    localStorage.setItem('klondikeBestResult', JSON.stringify(result));
+	const result = {
+		time: gameState.timer,
+		moves: gameState.moves,
+		date: new Date().toISOString()
+	};
+	// Отключаем Telegram CloudStorage для старых версий
+	// if (tg && tg.CloudStorage) {
+	//     tg.CloudStorage.setItem('bestResult', JSON.stringify(result));
+	// }
+	// Локальное сохранение на случай оффлайна
+	try { localStorage.setItem('klondikeBestResult', JSON.stringify(result)); } catch (_) {}
+	// Отправка на backend
+	postResultToBackend(result);
+}
+
+async function postResultToBackend(result) {
+	const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || null;
+	const username = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username) || null;
+	try {
+		await fetch('http://localhost:3000/api/results', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ...result, userId, username })
+		});
+	} catch (e) {
+		console.warn('Не удалось отправить результат на сервер:', e);
+	}
+}
+
+async function fetchStats() {
+	try {
+		const res = await fetch('http://localhost:3000/api/stats');
+		if (!res.ok) throw new Error('HTTP ' + res.status);
+		return await res.json();
+	} catch (e) {
+		console.warn('Не удалось получить статистику:', e);
+		return null;
+	}
+}
+
+function showStatsPopup(stats) {
+	if (!stats) {
+		if (tg && tg.showPopup) {
+			return tg.showPopup({ title: 'Статистика', message: 'Статистика недоступна', buttons: [{ type: 'ok', text: 'Ок' }] });
+		}
+		return alert('Статистика недоступна');
+	}
+	const fmt = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+	const msg = [
+		`Игр: ${stats.totalGames}`,
+		stats.bestTime != null ? `Лучшее время: ${fmt(stats.bestTime)}` : null,
+		stats.bestMoves != null ? `Меньше ходов: ${stats.bestMoves}` : null,
+		stats.averageTime != null ? `Среднее время: ${fmt(stats.averageTime)}` : null,
+		stats.averageMoves != null ? `Средние ходы: ${stats.averageMoves}` : null
+	].filter(Boolean).join('\n');
+	if (tg && tg.showPopup) {
+		tg.showPopup({ title: 'Статистика', message: msg, buttons: [{ type: 'ok', text: 'Ок' }] });
+	} else {
+		alert(msg);
+	}
 }
 
 // Поделиться результатом
@@ -715,6 +773,18 @@ function shareResult() {
         }
     }
 }
+
+// Показ статистики (через MainButton после победы и горячая клавиша S)
+async function showStatistics() {
+	const stats = await fetchStats();
+	showStatsPopup(stats);
+}
+
+document.addEventListener('keydown', (e) => {
+	if (e.key.toLowerCase() === 's') {
+		showStatistics();
+	}
+});
 
 // Новая игра
 function newGame() {
