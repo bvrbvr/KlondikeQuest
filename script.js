@@ -535,12 +535,17 @@ function isOppositeColor(suit1, suit2) {
 // Перемещение карт
 function moveCards(cards, source, target) {
 	console.log('Moving cards:', cards, 'from', source, 'to', target);
+	// Если цель foundation — переносим только одну карту (верхнюю выбранной последовательности)
+	let cardsToMove = cards;
+	if (target && target.type === 'foundation' && Array.isArray(cards) && cards.length > 1) {
+		cardsToMove = [cards[0]];
+	}
 	// Сохранение хода для отмены
-	saveMove(cards, source, target);
+	saveMove(cardsToMove, source, target);
 	// Удаление карт из источника
-	removeCardsFromSource(cards, source);
+	removeCardsFromSource(cardsToMove, source);
 	// Добавление карт в цель
-	addCardsToTarget(cards, target);
+	addCardsToTarget(cardsToMove, target);
 	// Обновление отображения
 	updateDisplay();
 	// Увеличение счетчика ходов
@@ -581,22 +586,21 @@ function removeCardsFromSource(cards, source) {
 
 // Добавление карт в цель
 function addCardsToTarget(cards, target) {
-    if (target.type === 'tableau') {
-        // Преобразуем объекты карт в правильный формат
-        const cardObjects = cards.map(card => ({
-            suit: card.suit,
-            value: card.value,
-            faceUp: true
-        }));
-        gameState.tableau[target.index].push(...cardObjects);
-    } else if (target.type === 'foundation') {
-        const cardObjects = cards.map(card => ({
-            suit: card.suit,
-            value: card.value,
-            faceUp: true
-        }));
-        gameState.foundation[target.index].push(...cardObjects);
-    }
+	if (target.type === 'tableau') {
+		// Преобразуем объекты карт в правильный формат
+		const cardObjects = cards.map(card => ({
+			suit: card.suit,
+			value: card.value,
+			faceUp: true
+		}));
+		gameState.tableau[target.index].push(...cardObjects);
+	} else if (target.type === 'foundation') {
+		// В foundation переносится только одна карта
+		const c = cards[0];
+		if (!c) return;
+		const cardObject = { suit: c.suit, value: c.value, faceUp: true };
+		gameState.foundation[target.index].push(cardObject);
+	}
 }
 
 // Взятие карты из колоды
@@ -787,35 +791,29 @@ function findBestTarget(cardElement) {
 
 // Настройка двойного клика для тузов
 function setupDoubleClickEvents() {
-    document.addEventListener('dblclick', (e) => {
-        const card = e.target.closest('.card');
-        if (card && card.dataset.value === 'A') {
-            // Двойной клик на туз - пытаемся переместить в foundation
-            const target = findBestTargetForAce(card);
-            if (target) {
-                const cards = getCardSequence(card);
-                const source = getCardLocation(card);
-                moveCards(cards, source, target);
-            }
-        }
-    });
-}
-
-// Поиск подходящего foundation для туза
-function findBestTargetForAce(cardElement) {
-    const card = {
-        suit: cardElement.dataset.suit,
-        value: cardElement.dataset.value
-    };
-    
-    // Ищем пустой foundation для туза
-    for (let i = 0; i < 4; i++) {
-        if (canMoveToFoundation(card, i)) {
-            return { type: 'foundation', index: i };
-        }
-    }
-    
-    return null;
+	document.addEventListener('dblclick', (e) => {
+		const cardEl = e.target.closest('.card');
+		if (!cardEl) return;
+		// Определяем источник и убеждаемся, что это верхняя карта стопки (для tableau)
+		const source = getCardLocation(cardEl);
+		if (!source) return;
+		if (source.type === 'tableau') {
+			const pile = gameState.tableau[source.index];
+			const topIndex = pile.length - 1;
+			const cardIndex = Number.isInteger(parseInt(cardEl.dataset.cardIndex)) ? parseInt(cardEl.dataset.cardIndex) : topIndex;
+			if (cardIndex !== topIndex) return; // только верхняя карта
+		}
+		// Формируем цель foundation, если возможен ход
+		const card = { suit: cardEl.dataset.suit, value: cardEl.dataset.value };
+		let target = null;
+		for (let f = 0; f < 4; f++) {
+			if (canMoveToFoundation(card, f)) { target = { type: 'foundation', index: f }; break; }
+		}
+		if (target) {
+			// Переносим только одну карту
+			moveCards([card], source, target);
+		}
+	});
 }
 
 // Проверка наличия доступных ходов
