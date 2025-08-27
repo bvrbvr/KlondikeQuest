@@ -220,6 +220,8 @@ function setupEventListeners() {
         hideWinModal();
         newGame();
     });
+    // Гарантируем наличие кнопок темы и колоды (если отсутствуют в HTML)
+    ensureControlButtons();
     // Переключение темы
     if (elements.themeToggleBtn) {
         elements.themeToggleBtn.addEventListener('click', toggleTheme);
@@ -240,6 +242,30 @@ function setupEventListeners() {
     
     // Двойной клик для тузов
     setupDoubleClickEvents();
+}
+
+// Создание кнопок темы/колоды, если их нет в разметке
+function ensureControlButtons() {
+    const controls = document.querySelector('.game-header .game-controls');
+    if (!controls) return;
+    if (!elements.themeToggleBtn) {
+        const btn = document.createElement('button');
+        btn.id = 'theme-toggle-btn';
+        btn.className = 'btn btn-secondary';
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        btn.textContent = 'Тема: ' + (current === 'dark' ? 'Тёмная' : 'Светлая');
+        controls.appendChild(btn);
+        elements.themeToggleBtn = btn;
+    }
+    if (!elements.deckToggleBtn) {
+        const btn = document.createElement('button');
+        btn.id = 'deck-toggle-btn';
+        btn.className = 'btn btn-secondary';
+        const deck = document.documentElement.getAttribute('data-deck') || 'blue';
+        btn.textContent = 'Колода: ' + (deck === 'red' ? 'Красная' : 'Синяя');
+        controls.appendChild(btn);
+        elements.deckToggleBtn = btn;
+    }
 }
 
 // Настройка Drag and Drop

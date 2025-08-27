@@ -225,24 +225,32 @@ body{
 /* По высоте экрана — сжимаем стопки, если «высоты мало» */
 @media (max-height:830px){
   :root{
-    --stack-open:calc(var(--card-h) * -0.36);
-    --stack-closed:calc(var(--card-h) * -0.29);
+    --stack-open:calc(var(--card-h) * -0.44);
+    --stack-closed:calc(var(--card-h) * -0.36);
+    --card-max:clamp(40px, 11vw, 76px);
   }
-  .tableau-slot{min-height:clamp(88px, 25dvh, 300px)}
+  .tableau-slot{min-height:clamp(84px, 24dvh, 300px)}
+  .tableau-area{gap:6px}
 }
 @media (max-height:760px){
   :root{
-    --stack-open:calc(var(--card-h) * -0.33);
-    --stack-closed:calc(var(--card-h) * -0.26);
+    --stack-open:calc(var(--card-h) * -0.48);
+    --stack-closed:calc(var(--card-h) * -0.40);
+    --card-max:clamp(38px, 10vw, 70px);
   }
-  .tableau-slot{min-height:clamp(84px, 23dvh, 280px)}
+  .tableau-slot{min-height:clamp(78px, 21dvh, 280px)}
+  .tableau-area{gap:6px}
+  .game-container::after{height:calc(120px + var(--safe-bottom-pad))}
 }
 @media (max-height:700px){
   :root{
-    --stack-open:calc(var(--card-h) * -0.30);
-    --stack-closed:calc(var(--card-h) * -0.24);
+    --stack-open:calc(var(--card-h) * -0.52);
+    --stack-closed:calc(var(--card-h) * -0.44);
+    --card-max:clamp(36px, 9.5vw, 66px);
   }
-  .tableau-slot{min-height:clamp(80px, 21dvh, 260px)}
+  .tableau-slot{min-height:clamp(72px, 19dvh, 260px)}
+  .tableau-area{gap:5px}
+  .game-container::after{height:calc(110px + var(--safe-bottom-pad))}
 }
 
 /* Ultra-wide phones (Plus/Max) — немного можно вернуть высоту */
