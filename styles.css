@@ -1,0 +1,469 @@
+/* CSS переменные для поддержки тем Telegram */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --card-bg: #ffffff;
+    --card-border: #cccccc;
+    --slot-bg: #f0f0f0;
+    --slot-border: #dddddd;
+    --btn-primary-bg: #007bff;
+    --btn-primary-color: #ffffff;
+    --btn-secondary-bg: #6c757d;
+    --btn-secondary-color: #ffffff;
+    --modal-bg: rgba(0, 0, 0, 0.5);
+    --modal-content-bg: #ffffff;
+    --red-suit: #dc3545;
+    --black-suit: #000000;
+}
+
+/* Темная тема */
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --card-bg: #2d2d2d;
+    --card-border: #444444;
+    --slot-bg: #333333;
+    --slot-border: #555555;
+    --btn-primary-bg: #007bff;
+    --btn-primary-color: #ffffff;
+    --btn-secondary-bg: #6c757d;
+    --btn-secondary-color: #ffffff;
+    --modal-bg: rgba(0, 0, 0, 0.7);
+    --modal-content-bg: #2d2d2d;
+    --red-suit: #ff6b6b;
+    --black-suit: #ffffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.game-container {
+    max-width: 100vw;
+    min-height: 100vh;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Заголовок игры */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.game-info {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+}
+
+.timer, .moves {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.timer-label, .moves-label {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.timer-value, .moves-value {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.game-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.btn-primary {
+    background-color: var(--btn-primary-bg);
+    color: var(--btn-primary-color);
+}
+
+.btn-secondary {
+    background-color: var(--btn-secondary-bg);
+    color: var(--btn-secondary-color);
+}
+
+.btn:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Основное игровое поле */
+.game-board {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+}
+
+/* Foundation область */
+.foundation-area {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.foundation-slot {
+    aspect-ratio: 2.5/3.5;
+    background-color: var(--slot-bg);
+    border: 2px dashed var(--slot-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    transition: all 0.2s ease;
+}
+
+.foundation-slot:hover {
+    border-color: var(--btn-primary-bg);
+}
+
+/* Stock и Waste область */
+.stock-waste-area {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.stock-container, .waste-container {
+    flex: 1;
+    max-width: 120px;
+}
+
+.stock, .waste {
+    aspect-ratio: 2.5/3.5;
+    background-color: var(--slot-bg);
+    border: 2px solid var(--slot-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.stock:hover, .waste:hover {
+    border-color: var(--btn-primary-bg);
+}
+
+/* Tableau область */
+.tableau-area {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    flex: 1;
+    min-height: 200px;
+}
+
+.tableau-slot {
+    background-color: var(--slot-bg);
+    border: 2px dashed var(--slot-border);
+    border-radius: 8px;
+    min-height: 120px;
+    padding: 5px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tableau-slot:hover {
+    border-color: var(--btn-primary-bg);
+}
+
+/* Карты */
+.card {
+    width: 100%;
+    aspect-ratio: 2.5/3.5;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: grab;
+    transition: all 0.2s ease;
+    position: relative;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card:active {
+    cursor: grabbing;
+}
+
+.card.face-down {
+    background: linear-gradient(45deg, #2c3e50, #34495e);
+    color: transparent;
+}
+
+.card.face-down::before {
+    content: "♠";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: var(--text-color);
+}
+
+.card.red {
+    color: var(--red-suit);
+}
+
+.card.black {
+    color: var(--black-suit);
+}
+
+.card-value {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.card-suit {
+    font-size: 16px;
+}
+
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    transform: rotate(180deg);
+}
+
+/* Карты в tableau */
+.tableau-slot .card {
+    margin-bottom: -40px;
+    position: relative;
+    z-index: 1;
+}
+
+.tableau-slot .card:last-child {
+    margin-bottom: 0;
+}
+
+.tableau-slot .card.face-down {
+    margin-bottom: -35px;
+}
+
+/* Drag and Drop */
+.card.dragging {
+    opacity: 0.8;
+    transform: rotate(5deg);
+    z-index: 1000;
+}
+
+.slot.drag-over {
+    border-color: var(--btn-primary-bg);
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Модальное окно */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--modal-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: var(--modal-content-bg);
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+.win-stats {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: var(--slot-bg);
+    border-radius: 8px;
+}
+
+.win-stats p {
+    margin: 5px 0;
+    font-weight: 500;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .game-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .game-info {
+        justify-content: space-between;
+    }
+    
+    .game-controls {
+        justify-content: center;
+    }
+    
+    .foundation-area {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .tableau-area {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+    
+    .tableau-slot:nth-child(n+5) {
+        grid-column: span 2;
+    }
+    
+    .card {
+        font-size: 10px;
+    }
+    
+    .card-value {
+        font-size: 12px;
+    }
+    
+    .card-suit {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-container {
+        padding: 5px;
+    }
+    
+    .foundation-area {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+    }
+    
+    .tableau-area {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+    }
+    
+    .tableau-slot:nth-child(n+4) {
+        grid-column: span 2;
+    }
+    
+    .stock-waste-area {
+        gap: 10px;
+    }
+    
+    .stock-container, .waste-container {
+        max-width: 80px;
+    }
+}
+
+/* Анимации */
+@keyframes cardFlip {
+    from {
+        transform: rotateY(0deg);
+    }
+    to {
+        transform: rotateY(180deg);
+    }
+}
+
+.card.flipping {
+    animation: cardFlip 0.3s ease-in-out;
+}
+
+@keyframes cardMove {
+    from {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.card.moving {
+    animation: cardMove 0.2s ease-in-out;
+}
+
+/* Улучшения для производительности */
+.card, .slot {
+    will-change: transform;
+}
+
+/* Поддержка высокого DPI */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .card {
+        border-width: 0.5px;
+    }
+}

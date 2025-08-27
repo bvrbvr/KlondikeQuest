@@ -1,0 +1,698 @@
+// Инициализация Telegram Web App
+let tg;
+if (window.Telegram && window.Telegram.WebApp) {
+    tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+}
+
+// Константы игры
+const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
+const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const SUIT_SYMBOLS = {
+    hearts: '♥',
+    diamonds: '♦',
+    clubs: '♣',
+    spades: '♠'
+};
+
+// Состояние игры
+class GameState {
+    constructor() {
+        this.deck = [];
+        this.tableau = [[], [], [], [], [], [], []];
+        this.foundation = [[], [], [], []];
+        this.stock = [];
+        this.waste = [];
+        this.moves = 0;
+        this.timer = 0;
+        this.timerInterval = null;
+        this.gameStarted = false;
+        this.moveHistory = [];
+        this.draggedCards = [];
+        this.dragSource = null;
+    }
+}
+
+let gameState = new GameState();
+
+// DOM элементы
+const elements = {
+    timer: document.getElementById('timer'),
+    moves: document.getElementById('moves'),
+    newGameBtn: document.getElementById('new-game-btn'),
+    undoBtn: document.getElementById('undo-btn'),
+    stock: document.getElementById('stock'),
+    waste: document.getElementById('waste'),
+    winModal: document.getElementById('win-modal'),
+    shareResultBtn: document.getElementById('share-result-btn'),
+    playAgainBtn: document.getElementById('play-again-btn'),
+    winTime: document.getElementById('win-time'),
+    winMoves: document.getElementById('win-moves')
+};
+
+// Инициализация игры
+function initGame() {
+    createDeck();
+    shuffleDeck();
+    dealCards();
+    updateDisplay();
+    setupEventListeners();
+    applyTheme();
+    startTimer();
+}
+
+// Создание колоды
+function createDeck() {
+    gameState.deck = [];
+    for (let suit of SUITS) {
+        for (let value of VALUES) {
+            gameState.deck.push({
+                suit: suit,
+                value: value,
+                faceUp: false
+            });
+        }
+    }
+}
+
+// Перемешивание колоды (Fisher-Yates)
+function shuffleDeck() {
+    for (let i = gameState.deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [gameState.deck[i], gameState.deck[j]] = [gameState.deck[j], gameState.deck[i]];
+    }
+}
+
+// Раздача карт
+function dealCards() {
+    // Раздача в tableau
+    for (let i = 0; i < 7; i++) {
+        for (let j = i; j < 7; j++) {
+            const card = gameState.deck.pop();
+            card.faceUp = (i === j); // Только верхняя карта открыта
+            gameState.tableau[j].push(card);
+        }
+    }
+    
+    // Оставшиеся карты в stock
+    gameState.stock = [...gameState.deck];
+    gameState.deck = [];
+}
+
+// Обновление отображения
+function updateDisplay() {
+    updateTableau();
+    updateFoundation();
+    updateStockWaste();
+    updateInfo();
+}
+
+// Обновление tableau
+function updateTableau() {
+    const tableauSlots = document.querySelectorAll('.tableau-slot');
+    
+    tableauSlots.forEach((slot, index) => {
+        slot.innerHTML = '';
+        const cards = gameState.tableau[index];
+        
+        cards.forEach((card, cardIndex) => {
+            const cardElement = createCardElement(card, cardIndex === cards.length - 1);
+            cardElement.dataset.slotIndex = index;
+            cardElement.dataset.cardIndex = cardIndex;
+            slot.appendChild(cardElement);
+        });
+    });
+}
+
+// Обновление foundation
+function updateFoundation() {
+    const foundationSlots = document.querySelectorAll('.foundation-slot');
+    
+    foundationSlots.forEach((slot, index) => {
+        slot.innerHTML = '';
+        const cards = gameState.foundation[index];
+        
+        if (cards.length > 0) {
+            const topCard = cards[cards.length - 1];
+            const cardElement = createCardElement(topCard, true);
+            cardElement.dataset.slotIndex = index;
+            slot.appendChild(cardElement);
+        }
+    });
+}
+
+// Обновление stock и waste
+function updateStockWaste() {
+    // Stock
+    elements.stock.innerHTML = '';
+    if (gameState.stock.length > 0) {
+        const stockCard = document.createElement('div');
+        stockCard.className = 'card face-down';
+        stockCard.innerHTML = '<div class="card-top"><span class="card-value">♠</span></div>';
+        elements.stock.appendChild(stockCard);
+    }
+    
+    // Waste
+    elements.waste.innerHTML = '';
+    if (gameState.waste.length > 0) {
+        const topCard = gameState.waste[gameState.waste.length - 1];
+        const cardElement = createCardElement(topCard, true);
+        cardElement.dataset.slot = 'waste';
+        elements.waste.appendChild(cardElement);
+    }
+}
+
+// Создание элемента карты
+function createCardElement(card, isTopCard) {
+    const cardElement = document.createElement('div');
+    cardElement.className = `card ${card.faceUp ? '' : 'face-down'} ${card.faceUp && (card.suit === 'hearts' || card.suit === 'diamonds') ? 'red' : 'black'}`;
+    cardElement.dataset.suit = card.suit;
+    cardElement.dataset.value = card.value;
+    cardElement.draggable = card.faceUp && isTopCard;
+    
+    if (card.faceUp) {
+        cardElement.innerHTML = `
+            <div class="card-top">
+                <span class="card-value">${card.value}</span>
+                <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
+            </div>
+            <div class="card-bottom">
+                <span class="card-value">${card.value}</span>
+                <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
+            </div>
+        `;
+    }
+    
+    return cardElement;
+}
+
+// Обновление информации
+function updateInfo() {
+    elements.moves.textContent = gameState.moves;
+    elements.timer.textContent = formatTime(gameState.timer);
+}
+
+// Форматирование времени
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Настройка обработчиков событий
+function setupEventListeners() {
+    // Кнопки управления
+    elements.newGameBtn.addEventListener('click', newGame);
+    elements.undoBtn.addEventListener('click', undoMove);
+    elements.shareResultBtn.addEventListener('click', shareResult);
+    elements.playAgainBtn.addEventListener('click', () => {
+        hideWinModal();
+        newGame();
+    });
+    
+    // Stock клик
+    elements.stock.addEventListener('click', drawFromStock);
+    
+    // Drag and Drop
+    setupDragAndDrop();
+    
+    // Touch события для мобильных устройств
+    setupTouchEvents();
+}
+
+// Настройка Drag and Drop
+function setupDragAndDrop() {
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('drop', handleDrop);
+    document.addEventListener('dragend', handleDragEnd);
+}
+
+// Обработка начала перетаскивания
+function handleDragStart(e) {
+    if (e.target.classList.contains('card') && e.target.draggable) {
+        e.target.classList.add('dragging');
+        gameState.draggedCards = getCardSequence(e.target);
+        gameState.dragSource = getCardLocation(e.target);
+        
+        // Тактильная отдача
+        if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.impactOccurred('light');
+        }
+    }
+}
+
+// Обработка перетаскивания
+function handleDragOver(e) {
+    e.preventDefault();
+    if (e.target.classList.contains('card') || e.target.classList.contains('foundation-slot') || 
+        e.target.classList.contains('tableau-slot') || e.target.classList.contains('waste')) {
+        e.target.classList.add('drag-over');
+    }
+}
+
+// Обработка сброса
+function handleDrop(e) {
+    e.preventDefault();
+    
+    if (!gameState.draggedCards.length) return;
+    
+    const target = e.target.closest('.foundation-slot, .tableau-slot, .waste');
+    if (!target) return;
+    
+    const targetLocation = getSlotLocation(target);
+    if (canMoveCards(gameState.draggedCards, targetLocation)) {
+        moveCards(gameState.draggedCards, gameState.dragSource, targetLocation);
+    }
+    
+    clearDragState();
+}
+
+// Обработка окончания перетаскивания
+function handleDragEnd(e) {
+    clearDragState();
+}
+
+// Очистка состояния перетаскивания
+function clearDragState() {
+    document.querySelectorAll('.dragging, .drag-over').forEach(el => {
+        el.classList.remove('dragging', 'drag-over');
+    });
+    gameState.draggedCards = [];
+    gameState.dragSource = null;
+}
+
+// Настройка Touch событий
+function setupTouchEvents() {
+    let touchStartX, touchStartY, touchStartTime;
+    let draggedElement = null;
+    
+    document.addEventListener('touchstart', (e) => {
+        const card = e.target.closest('.card');
+        if (card && card.draggable) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+            draggedElement = card;
+        }
+    });
+    
+    document.addEventListener('touchmove', (e) => {
+        if (draggedElement) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            
+            if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+                draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            }
+        }
+    });
+    
+    document.addEventListener('touchend', (e) => {
+        if (draggedElement) {
+            const touchEndTime = Date.now();
+            const touchDuration = touchEndTime - touchStartTime;
+            
+            if (touchDuration < 200) {
+                // Короткое касание - попытка автоматического перемещения
+                const target = findBestTarget(draggedElement);
+                if (target) {
+                    const cards = getCardSequence(draggedElement);
+                    const source = getCardLocation(draggedElement);
+                    moveCards(cards, source, target);
+                }
+            }
+            
+            draggedElement.style.transform = '';
+            draggedElement = null;
+        }
+    });
+}
+
+// Получение последовательности карт
+function getCardSequence(cardElement) {
+    const cards = [];
+    let current = cardElement;
+    
+    while (current && current.classList.contains('card')) {
+        cards.push({
+            suit: current.dataset.suit,
+            value: current.dataset.value
+        });
+        current = current.nextElementSibling;
+    }
+    
+    return cards;
+}
+
+// Получение местоположения карты
+function getCardLocation(cardElement) {
+    const slot = cardElement.closest('.tableau-slot, .foundation-slot, .waste');
+    if (!slot) return null;
+    
+    return {
+        type: slot.dataset.slot ? slot.dataset.slot : 'tableau',
+        index: slot.dataset.slotIndex || parseInt(slot.dataset.slot.split('-')[1])
+    };
+}
+
+// Получение местоположения слота
+function getSlotLocation(slotElement) {
+    return {
+        type: slotElement.dataset.slot ? slotElement.dataset.slot : 'tableau',
+        index: slotElement.dataset.slotIndex || parseInt(slot.dataset.slot.split('-')[1])
+    };
+}
+
+// Проверка возможности перемещения карт
+function canMoveCards(cards, targetLocation) {
+    if (!cards.length) return false;
+    
+    const firstCard = cards[0];
+    
+    if (targetLocation.type === 'foundation') {
+        return canMoveToFoundation(firstCard, targetLocation.index);
+    } else if (targetLocation.type === 'tableau') {
+        return canMoveToTableau(firstCard, targetLocation.index);
+    }
+    
+    return false;
+}
+
+// Проверка возможности перемещения в foundation
+function canMoveToFoundation(card, foundationIndex) {
+    const foundation = gameState.foundation[foundationIndex];
+    
+    if (foundation.length === 0) {
+        return card.value === 'A';
+    }
+    
+    const topCard = foundation[foundation.length - 1];
+    return card.suit === topCard.suit && getCardValue(card.value) === getCardValue(topCard.value) + 1;
+}
+
+// Проверка возможности перемещения в tableau
+function canMoveToTableau(card, tableauIndex) {
+    const tableau = gameState.tableau[tableauIndex];
+    
+    if (tableau.length === 0) {
+        return card.value === 'K';
+    }
+    
+    const topCard = tableau[tableau.length - 1];
+    return isOppositeColor(card.suit, topCard.suit) && getCardValue(card.value) === getCardValue(topCard.value) - 1;
+}
+
+// Получение числового значения карты
+function getCardValue(value) {
+    const valueMap = {
+        'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
+        'J': 11, 'Q': 12, 'K': 13
+    };
+    return valueMap[value];
+}
+
+// Проверка противоположного цвета
+function isOppositeColor(suit1, suit2) {
+    const redSuits = ['hearts', 'diamonds'];
+    const blackSuits = ['clubs', 'spades'];
+    
+    return (redSuits.includes(suit1) && blackSuits.includes(suit2)) ||
+           (blackSuits.includes(suit1) && redSuits.includes(suit2));
+}
+
+// Перемещение карт
+function moveCards(cards, source, target) {
+    // Сохранение хода для отмены
+    saveMove(cards, source, target);
+    
+    // Удаление карт из источника
+    removeCardsFromSource(cards, source);
+    
+    // Добавление карт в цель
+    addCardsToTarget(cards, target);
+    
+    // Обновление отображения
+    updateDisplay();
+    
+    // Увеличение счетчика ходов
+    gameState.moves++;
+    
+    // Проверка победы
+    checkWin();
+    
+    // Тактильная отдача
+    if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+    }
+}
+
+// Сохранение хода
+function saveMove(cards, source, target) {
+    gameState.moveHistory.push({
+        cards: [...cards],
+        source: { ...source },
+        target: { ...target }
+    });
+}
+
+// Удаление карт из источника
+function removeCardsFromSource(cards, source) {
+    if (source.type === 'tableau') {
+        const tableau = gameState.tableau[source.index];
+        tableau.splice(tableau.length - cards.length);
+        
+        // Открытие верхней карты, если она закрыта
+        if (tableau.length > 0 && !tableau[tableau.length - 1].faceUp) {
+            tableau[tableau.length - 1].faceUp = true;
+        }
+    } else if (source.type === 'foundation') {
+        const foundation = gameState.foundation[source.index];
+        foundation.splice(foundation.length - cards.length);
+    } else if (source.type === 'waste') {
+        gameState.waste.splice(gameState.waste.length - cards.length);
+    }
+}
+
+// Добавление карт в цель
+function addCardsToTarget(cards, target) {
+    if (target.type === 'tableau') {
+        gameState.tableau[target.index].push(...cards);
+    } else if (target.type === 'foundation') {
+        gameState.foundation[target.index].push(...cards);
+    }
+}
+
+// Взятие карты из колоды
+function drawFromStock() {
+    if (gameState.stock.length === 0) {
+        // Переворачиваем waste в stock
+        if (gameState.waste.length > 0) {
+            gameState.stock = [...gameState.waste.reverse()];
+            gameState.waste = [];
+            gameState.stock.forEach(card => card.faceUp = false);
+        }
+    } else {
+        // Берем карту из stock
+        const card = gameState.stock.pop();
+        card.faceUp = true;
+        gameState.waste.push(card);
+    }
+    
+    updateDisplay();
+    
+    // Тактильная отдача
+    if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+    }
+}
+
+// Отмена хода
+function undoMove() {
+    if (gameState.moveHistory.length === 0) return;
+    
+    const lastMove = gameState.moveHistory.pop();
+    
+    // Возвращаем карты в исходное положение
+    removeCardsFromSource(lastMove.cards, lastMove.target);
+    addCardsToTarget(lastMove.cards, lastMove.source);
+    
+    updateDisplay();
+    gameState.moves--;
+    
+    // Тактильная отдача
+    if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+    }
+}
+
+// Проверка победы
+function checkWin() {
+    const totalFoundationCards = gameState.foundation.reduce((sum, foundation) => sum + foundation.length, 0);
+    
+    if (totalFoundationCards === 52) {
+        showWinModal();
+        
+        // Сохранение результата
+        saveGameResult();
+        
+        // Показ popup в Telegram
+        if (tg && tg.showPopup) {
+            tg.showPopup({
+                title: 'Поздравляем!',
+                message: `Вы собрали все карты за ${formatTime(gameState.timer)} и ${gameState.moves} ходов!`,
+                buttons: [
+                    { type: 'ok', text: 'Отлично!' }
+                ]
+            });
+        }
+    }
+}
+
+// Показ модального окна победы
+function showWinModal() {
+    elements.winTime.textContent = formatTime(gameState.timer);
+    elements.winMoves.textContent = gameState.moves;
+    elements.winModal.classList.remove('hidden');
+}
+
+// Скрытие модального окна победы
+function hideWinModal() {
+    elements.winModal.classList.add('hidden');
+}
+
+// Сохранение результата игры
+function saveGameResult() {
+    const result = {
+        time: gameState.timer,
+        moves: gameState.moves,
+        date: new Date().toISOString()
+    };
+    
+    // Сохранение в Telegram Cloud Storage
+    if (tg && tg.CloudStorage) {
+        tg.CloudStorage.setItem('bestResult', JSON.stringify(result));
+    }
+    
+    // Сохранение в localStorage как резерв
+    localStorage.setItem('klondikeBestResult', JSON.stringify(result));
+}
+
+// Поделиться результатом
+function shareResult() {
+    const message = `Я собрал пасьянс Klondike за ${formatTime(gameState.timer)} и ${gameState.moves} ходов! 🎉`;
+    
+    if (tg && tg.MainButton) {
+        tg.MainButton.setText('Поделиться');
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => {
+            tg.sendData(JSON.stringify({
+                action: 'share',
+                message: message
+            }));
+        });
+    } else {
+        // Fallback для обычного браузера
+        if (navigator.share) {
+            navigator.share({
+                title: 'Klondike Quest',
+                text: message
+            });
+        } else {
+            // Копирование в буфер обмена
+            navigator.clipboard.writeText(message);
+            alert('Результат скопирован в буфер обмена!');
+        }
+    }
+}
+
+// Новая игра
+function newGame() {
+    // Остановка таймера
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    // Сброс состояния
+    gameState = new GameState();
+    
+    // Инициализация новой игры
+    initGame();
+}
+
+// Запуск таймера
+function startTimer() {
+    if (!gameState.gameStarted) {
+        gameState.gameStarted = true;
+        gameState.timerInterval = setInterval(() => {
+            gameState.timer++;
+            updateInfo();
+        }, 1000);
+    }
+}
+
+// Применение темы Telegram
+function applyTheme() {
+    if (tg && tg.themeParams) {
+        const theme = tg.themeParams;
+        
+        if (theme.bg_color) {
+            document.documentElement.style.setProperty('--bg-color', theme.bg_color);
+        }
+        if (theme.text_color) {
+            document.documentElement.style.setProperty('--text-color', theme.text_color);
+        }
+        if (theme.button_color) {
+            document.documentElement.style.setProperty('--btn-primary-bg', theme.button_color);
+        }
+        if (theme.button_text_color) {
+            document.documentElement.style.setProperty('--btn-primary-color', theme.button_text_color);
+        }
+        
+        // Определение темной темы
+        const isDark = theme.bg_color && theme.bg_color.toLowerCase().includes('1a1a1a');
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    }
+}
+
+// Поиск лучшей цели для автоматического перемещения
+function findBestTarget(cardElement) {
+    const card = {
+        suit: cardElement.dataset.suit,
+        value: cardElement.dataset.value
+    };
+    
+    // Сначала пробуем foundation
+    for (let i = 0; i < 4; i++) {
+        if (canMoveToFoundation(card, i)) {
+            return { type: 'foundation', index: i };
+        }
+    }
+    
+    // Затем tableau
+    for (let i = 0; i < 7; i++) {
+        if (canMoveToTableau(card, i)) {
+            return { type: 'tableau', index: i };
+        }
+    }
+    
+    return null;
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    initGame();
+    
+    // Обработка изменения размера окна
+    window.addEventListener('resize', () => {
+        updateDisplay();
+    });
+    
+    // Обработка изменения темы Telegram
+    if (tg && tg.onEvent) {
+        tg.onEvent('themeChanged', applyTheme);
+    }
+});
