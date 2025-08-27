@@ -169,26 +169,27 @@ function updateStockWaste() {
 
 // Создание элемента карты
 function createCardElement(card, isTopCard) {
-    const cardElement = document.createElement('div');
-    cardElement.className = `card ${card.faceUp ? '' : 'face-down'} ${card.faceUp && (card.suit === 'hearts' || card.suit === 'diamonds') ? 'red' : 'black'}`;
-    cardElement.dataset.suit = card.suit;
-    cardElement.dataset.value = card.value;
-    cardElement.draggable = card.faceUp && isTopCard;
-    
-    if (card.faceUp) {
-        cardElement.innerHTML = `
-            <div class="card-top">
-                <span class="card-value">${card.value}</span>
-                <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
-            </div>
-            <div class="card-bottom">
-                <span class="card-value">${card.value}</span>
-                <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
-            </div>
-        `;
-    }
-    
-    return cardElement;
+	const cardElement = document.createElement('div');
+	cardElement.className = `card ${card.faceUp ? '' : 'face-down'} ${card.faceUp && (card.suit === 'hearts' || card.suit === 'diamonds') ? 'red' : 'black'}`;
+	cardElement.dataset.suit = card.suit;
+	cardElement.dataset.value = card.value;
+	// Разрешаем перетаскивать любую открытую карту (для переноса последовательностей)
+	cardElement.draggable = card.faceUp; 
+	
+	if (card.faceUp) {
+		cardElement.innerHTML = `
+			<div class="card-top">
+				<span class="card-value">${card.value}</span>
+				<span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
+			</div>
+			<div class="card-bottom">
+				<span class="card-value">${card.value}</span>
+				<span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
+			</div>
+		`;
+	}
+	
+	return cardElement;
 }
 
 // Обновление информации
@@ -417,33 +418,50 @@ function getCardLocation(cardElement) {
 
 // Получение местоположения слота
 function getSlotLocation(slotElement) {
-    if (!slotElement) return null;
-    
-    if (slotElement.classList.contains('waste')) {
-        return { type: 'waste', index: 0 };
-    }
-    
-    if (slotElement.classList.contains('foundation-slot')) {
-        const slotData = slotElement.dataset.slot;
-        if (slotData && slotData.startsWith('foundation-')) {
-            return { 
-                type: 'foundation', 
-                index: parseInt(slotData.split('-')[1]) 
-            };
-        }
-    }
-    
-    if (slotElement.classList.contains('tableau-slot')) {
-        const slotData = slotElement.dataset.slot;
-        if (slotData && slotData.startsWith('tableau-')) {
-            return { 
-                type: 'tableau', 
-                index: parseInt(slotData.split('-')[1]) 
-            };
-        }
-    }
-    
-    return null;
+	if (!slotElement) return null;
+	
+	// Если дропнули прямо на карту, берём индекс из карты и определяем тип по родителю
+	if (slotElement.classList && slotElement.classList.contains('card')) {
+		const parent = slotElement.closest('.tableau-slot, .foundation-slot, .waste');
+		if (!parent) return null;
+		const idx = slotElement.dataset.slotIndex ? parseInt(slotElement.dataset.slotIndex) : null;
+		if (parent.classList.contains('waste')) {
+			return { type: 'waste', index: 0 };
+		}
+		if (parent.classList.contains('foundation-slot')) {
+			return { type: 'foundation', index: idx != null ? idx : 0 };
+		}
+		if (parent.classList.contains('tableau-slot')) {
+			return { type: 'tableau', index: idx != null ? idx : 0 };
+		}
+		return null;
+	}
+	
+	if (slotElement.classList.contains('waste')) {
+		return { type: 'waste', index: 0 };
+	}
+	
+	if (slotElement.classList.contains('foundation-slot')) {
+		const slotData = slotElement.dataset.slot;
+		if (slotData && slotData.startsWith('foundation-')) {
+			return { 
+				type: 'foundation', 
+				index: parseInt(slotData.split('-')[1]) 
+			};
+		}
+	}
+	
+	if (slotElement.classList.contains('tableau-slot')) {
+		const slotData = slotElement.dataset.slot;
+		if (slotData && slotData.startsWith('tableau-')) {
+			return { 
+				type: 'tableau', 
+				index: parseInt(slotData.split('-')[1]) 
+			};
+		}
+	}
+	
+	return null;
 }
 
 // Проверка возможности перемещения карт
