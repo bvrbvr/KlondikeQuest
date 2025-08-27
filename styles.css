@@ -138,6 +138,9 @@ body {
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-bottom: 20px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .foundation-slot {
@@ -149,6 +152,7 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 60px;
+    max-width: 80px;
     transition: all 0.2s ease;
 }
 
@@ -162,11 +166,14 @@ body {
     gap: 20px;
     margin-bottom: 20px;
     justify-content: center;
+    max-width: 200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .stock-container, .waste-container {
     flex: 1;
-    max-width: 120px;
+    max-width: 80px;
 }
 
 .stock, .waste {
@@ -194,6 +201,9 @@ body {
     gap: 10px;
     flex: 1;
     min-height: 200px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .tableau-slot {
@@ -213,6 +223,7 @@ body {
 /* Карты */
 .card {
     width: 100%;
+    max-width: 80px;
     aspect-ratio: 2.5/3.5;
     background-color: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -374,11 +385,13 @@ body {
     .foundation-area {
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
+        max-width: 200px;
     }
     
     .tableau-area {
         grid-template-columns: repeat(4, 1fr);
         gap: 8px;
+        max-width: 350px;
     }
     
     .tableau-slot:nth-child(n+5) {
@@ -387,6 +400,7 @@ body {
     
     .card {
         font-size: 10px;
+        max-width: 60px;
     }
     
     .card-value {
@@ -395,6 +409,14 @@ body {
     
     .card-suit {
         font-size: 14px;
+    }
+    
+    .foundation-slot {
+        max-width: 60px;
+    }
+    
+    .stock-container, .waste-container {
+        max-width: 60px;
     }
 }
 
@@ -406,11 +428,13 @@ body {
     .foundation-area {
         grid-template-columns: repeat(2, 1fr);
         gap: 5px;
+        max-width: 160px;
     }
     
     .tableau-area {
         grid-template-columns: repeat(3, 1fr);
         gap: 5px;
+        max-width: 250px;
     }
     
     .tableau-slot:nth-child(n+4) {
@@ -419,10 +443,20 @@ body {
     
     .stock-waste-area {
         gap: 10px;
+        max-width: 140px;
     }
     
     .stock-container, .waste-container {
-        max-width: 80px;
+        max-width: 50px;
+    }
+    
+    .card {
+        max-width: 45px;
+        font-size: 8px;
+    }
+    
+    .foundation-slot {
+        max-width: 45px;
     }
 }
 
@@ -465,5 +499,28 @@ body {
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
     .card {
         border-width: 0.5px;
+    }
+}
+
+/* Большие экраны */
+@media (min-width: 1200px) {
+    .foundation-area {
+        max-width: 500px;
+    }
+    
+    .tableau-area {
+        max-width: 800px;
+    }
+    
+    .card {
+        max-width: 100px;
+    }
+    
+    .foundation-slot {
+        max-width: 100px;
+    }
+    
+    .stock-container, .waste-container {
+        max-width: 100px;
     }
 }

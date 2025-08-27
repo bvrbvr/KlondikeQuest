@@ -336,13 +336,26 @@ function setupTouchEvents() {
 function getCardSequence(cardElement) {
     const cards = [];
     let current = cardElement;
+    const slot = cardElement.closest('.tableau-slot');
     
-    while (current && current.classList.contains('card')) {
+    if (!slot) {
+        // Если карта не в tableau, возвращаем только её
+        return [{
+            suit: cardElement.dataset.suit,
+            value: cardElement.dataset.value
+        }];
+    }
+    
+    const slotIndex = parseInt(slot.dataset.slot.split('-')[1]);
+    const cardIndex = parseInt(cardElement.dataset.cardIndex);
+    const tableau = gameState.tableau[slotIndex];
+    
+    // Возвращаем карту и все карты после неё в tableau
+    for (let i = cardIndex; i < tableau.length; i++) {
         cards.push({
-            suit: current.dataset.suit,
-            value: current.dataset.value
+            suit: tableau[i].suit,
+            value: tableau[i].value
         });
-        current = current.nextElementSibling;
     }
     
     return cards;
@@ -353,6 +366,10 @@ function getCardLocation(cardElement) {
     const slot = cardElement.closest('.tableau-slot, .foundation-slot, .waste');
     if (!slot) return null;
     
+    if (slot.classList.contains('waste')) {
+        return { type: 'waste', index: 0 };
+    }
+    
     return {
         type: slot.dataset.slot ? slot.dataset.slot : 'tableau',
         index: slot.dataset.slotIndex || parseInt(slot.dataset.slot.split('-')[1])
@@ -361,9 +378,13 @@ function getCardLocation(cardElement) {
 
 // Получение местоположения слота
 function getSlotLocation(slotElement) {
+    if (slotElement.classList.contains('waste')) {
+        return { type: 'waste', index: 0 };
+    }
+    
     return {
         type: slotElement.dataset.slot ? slotElement.dataset.slot : 'tableau',
-        index: slotElement.dataset.slotIndex || parseInt(slot.dataset.slot.split('-')[1])
+        index: slotElement.dataset.slotIndex || parseInt(slotElement.dataset.slot.split('-')[1])
     };
 }
 
@@ -426,6 +447,8 @@ function isOppositeColor(suit1, suit2) {
 
 // Перемещение карт
 function moveCards(cards, source, target) {
+    console.log('Moving cards:', cards, 'from', source, 'to', target);
+    
     // Сохранение хода для отмены
     saveMove(cards, source, target);
     
@@ -463,7 +486,8 @@ function saveMove(cards, source, target) {
 function removeCardsFromSource(cards, source) {
     if (source.type === 'tableau') {
         const tableau = gameState.tableau[source.index];
-        tableau.splice(tableau.length - cards.length);
+        const startIndex = tableau.length - cards.length;
+        tableau.splice(startIndex);
         
         // Открытие верхней карты, если она закрыта
         if (tableau.length > 0 && !tableau[tableau.length - 1].faceUp) {
@@ -480,9 +504,20 @@ function removeCardsFromSource(cards, source) {
 // Добавление карт в цель
 function addCardsToTarget(cards, target) {
     if (target.type === 'tableau') {
-        gameState.tableau[target.index].push(...cards);
+        // Преобразуем объекты карт в правильный формат
+        const cardObjects = cards.map(card => ({
+            suit: card.suit,
+            value: card.value,
+            faceUp: true
+        }));
+        gameState.tableau[target.index].push(...cardObjects);
     } else if (target.type === 'foundation') {
-        gameState.foundation[target.index].push(...cards);
+        const cardObjects = cards.map(card => ({
+            suit: card.suit,
+            value: card.value,
+            faceUp: true
+        }));
+        gameState.foundation[target.index].push(...cardObjects);
     }
 }
 
