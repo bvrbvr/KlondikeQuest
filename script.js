@@ -1,3 +1,40 @@
+// === Telegram viewport adapter: пишет размеры и инсет в CSS переменные ===
+(function () {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg) return;
+
+  // Просим максимум высоты
+  try { tg.expand?.(); tg.requestFullscreen?.(); } catch (e) {}
+
+  const r = document.documentElement.style;
+
+  function setVars() {
+    // базовые размеры
+    if (typeof tg.viewportWidth === 'number')  r.setProperty('--tg-vw', tg.viewportWidth + 'px');
+    if (typeof tg.viewportHeight === 'number') r.setProperty('--tg-vh', tg.viewportHeight + 'px');
+
+    // обычный safe area
+    const sa = tg.safeAreaInset || {};
+    if ('top' in sa)    r.setProperty('--tg-safe-top',    (sa.top ?? 0) + 'px');
+    if ('right' in sa)  r.setProperty('--tg-safe-right',  (sa.right ?? 0) + 'px');
+    if ('bottom' in sa) r.setProperty('--tg-safe-bottom', (sa.bottom ?? 0) + 'px');
+    if ('left' in sa)   r.setProperty('--tg-safe-left',   (sa.left ?? 0) + 'px');
+
+    // CONTENT safe area — учитывает панели Telegram и жестовую зону (это главное)
+    const cs = tg.contentSafeAreaInset || {};
+    if ('top' in cs)    r.setProperty('--tg-csafe-top',    (cs.top ?? 0) + 'px');
+    if ('right' in cs)  r.setProperty('--tg-csafe-right',  (cs.right ?? 0) + 'px');
+    if ('bottom' in cs) r.setProperty('--tg-csafe-bottom', (cs.bottom ?? 0) + 'px');
+    if ('left' in cs)   r.setProperty('--tg-csafe-left',   (cs.left ?? 0) + 'px');
+  }
+
+  setVars();
+
+  tg.onEvent?.('viewport_changed', setVars);
+  tg.onEvent?.('content_safe_area_changed', setVars);
+  tg.onEvent?.('viewport_state_changed', setVars);
+})();
+
 // Инициализация Telegram Web App
 let tg;
 if (window.Telegram && window.Telegram.WebApp) {
@@ -1618,3 +1655,4 @@ function initBackgroundAnimation() {
 // const rippleStyle = document.createElement('style');
 // rippleStyle.textContent = `...`;
 // document.head.appendChild(rippleStyle);
+
