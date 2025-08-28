@@ -1445,50 +1445,18 @@ function initBackgroundAnimation() {
         });
     });
     
-    // Добавляем эффект при клике
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.game-container')) {
-            createRippleEffect(e.clientX, e.clientY);
-        }
-    });
+    // Убираем эффект при клике - пузыри больше не нужны
+    // document.addEventListener('click', (e) => {
+    //     if (e.target.closest('.game-container')) {
+    //         createRippleEffect(e.clientX, e.clientY);
+    //     }
+    // });
 }
 
-// Создание эффекта волн при клике
-function createRippleEffect(x, y) {
-    const ripple = document.createElement('div');
-    ripple.style.cssText = `
-        position: fixed;
-        left: ${x - 15}px;
-        top: ${y - 15}px;
-        width: 30px;
-        height: 30px;
-        border: 1px solid var(--btn-primary-bg);
-        border-radius: 50%;
-        opacity: 0.4;
-        z-index: 0;
-        pointer-events: none;
-        animation: ripple 0.8s ease-out forwards;
-    `;
-    
-    document.body.appendChild(ripple);
-    
-    setTimeout(() => {
-        ripple.remove();
-    }, 800);
-}
+// Удаляем функцию createRippleEffect - пузыри больше не нужны
+// function createRippleEffect(x, y) { ... }
 
-// Добавляем CSS для эффекта волн
-const rippleStyle = document.createElement('style');
-rippleStyle.textContent = `
-    @keyframes ripple {
-        0% {
-            transform: scale(0);
-            opacity: 0.4;
-        }
-        100% {
-            transform: scale(2);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(rippleStyle);
+// Удаляем CSS для эффекта волн
+// const rippleStyle = document.createElement('style');
+// rippleStyle.textContent = `...`;
+// document.head.appendChild(rippleStyle);
