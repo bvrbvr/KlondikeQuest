@@ -96,6 +96,7 @@ body{
   scroll-padding-top:calc(var(--ui-header-h) + var(--header-gap) + var(--tg-topbar-gap));
   scroll-padding-bottom:calc(var(--pad-bottom) + 120px);
   position:relative; z-index:1;
+  touch-action:pan-x;
 }
 
 /* верхний спейсер под телеграм-шапку: ПЕРЕД нашей .game-header */
@@ -138,7 +139,7 @@ body{
 .btn:hover{opacity:.9;transform:translateY(-1px)} .btn:active{transform:translateY(0)}
 
 /* ============ Board ============ */
-.game-board{display:flex; flex-direction:column; gap:8px; flex:1; padding-bottom:var(--pad-bottom)}
+.game-board{display:flex; flex-direction:column; gap:8px; flex:1; padding-bottom:var(--pad-bottom); touch-action:pan-x}
 
 /* ——— FOUNDATION (4 точных колонки по ширине карты) ——— */
 .foundation-area{
@@ -150,6 +151,7 @@ body{
   width:100%;
   max-width:var(--tableau-maxw);
   margin: 0 auto 8px auto;            /* сверху отступ задаёт header-gap/спейсер */
+  touch-action:pan-x;
 }
 .foundation-slot{
   width:var(--card-max);
@@ -164,6 +166,7 @@ body{
 .stock-waste-area{
   display:flex; gap:var(--gap); justify-content:center;
   width:100%; max-width:var(--tableau-maxw); margin:0 auto;
+  touch-action:pan-x;
 }
 .stock-container,.waste-container{flex:0 0 var(--card-max); max-width:var(--card-max)}
 .stock,.waste{
@@ -187,6 +190,7 @@ body{
   margin:0 auto;
   flex:1;
   padding-bottom:var(--pad-bottom);
+  touch-action:pan-x;
 }
 .tableau-slot{
   width:var(--card-max);
@@ -209,7 +213,7 @@ body{
   padding:3px; font-size:var(--font-s); font-weight:800;
   cursor:grab; position:relative; user-select:none;
   box-shadow:0 2px 4px rgba(0,0,0,.08);
-  transition:transform .2s, opacity .2s; touch-action:none;
+  transition:transform .2s, opacity .2s; touch-action:manipulation;
 }
 .card:active{cursor:grabbing}
 .card.face-down{background:linear-gradient(45deg,#2c3e50,#34495e); color:transparent}
@@ -232,6 +236,13 @@ body{
 .card.dragging{opacity:.9; transform:scale(1.03) rotate(1.5deg); z-index:1000}
 .foundation-slot.drag-over,.tableau-slot.drag-over,.card.drag-over{
   border-color:var(--btn-primary-bg); background-color:rgba(0,123,255,.08);
+}
+
+/* Предотвращение прокрутки при перетаскивании */
+body.dragging {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 /* ============ Modal & misc ============ */

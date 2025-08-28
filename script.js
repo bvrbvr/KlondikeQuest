@@ -543,6 +543,7 @@ function clearDragState() {
     document.querySelectorAll('.dragging, .drag-over').forEach(el => {
         el.classList.remove('dragging', 'drag-over');
     });
+    document.body.classList.remove('dragging');
     gameState.draggedCards = [];
     gameState.dragSource = null;
 }
@@ -551,6 +552,15 @@ function clearDragState() {
 function setupTouchEvents() {
     let touchStartX, touchStartY, touchStartTime;
     let draggedElement = null;
+    let isDragging = false;
+    
+    // Предотвращение прокрутки страницы при касании карт
+    document.addEventListener('touchmove', (e) => {
+        const card = e.target.closest('.card');
+        if (card && card.draggable) {
+            e.preventDefault();
+        }
+    }, { passive: false });
     
     document.addEventListener('touchstart', (e) => {
         const card = e.target.closest('.card');
@@ -559,28 +569,52 @@ function setupTouchEvents() {
             touchStartY = e.touches[0].clientY;
             touchStartTime = Date.now();
             draggedElement = card;
+            isDragging = false;
         }
     });
     
     document.addEventListener('touchmove', (e) => {
         if (draggedElement) {
-            e.preventDefault();
             const touch = e.touches[0];
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
             
-            if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+            // Если движение больше порога, начинаем перетаскивание
+            if (!isDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+                isDragging = true;
+                draggedElement.classList.add('dragging');
+                document.body.classList.add('dragging');
+            }
+            
+            if (isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
                 draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
             }
         }
-    });
+    }, { passive: false });
     
     document.addEventListener('touchend', (e) => {
         if (draggedElement) {
             const touchEndTime = Date.now();
             const touchDuration = touchEndTime - touchStartTime;
             
-            if (touchDuration < 200) {
+            if (isDragging) {
+                // Если перетаскивали, ищем цель для сброса
+                const touch = e.changedTouches[0];
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                const target = elementBelow ? elementBelow.closest('.foundation-slot, .tableau-slot, .waste') : null;
+                
+                if (target) {
+                    const cards = getCardSequence(draggedElement);
+                    const source = getCardLocation(draggedElement);
+                    const targetLocation = getSlotLocation(target);
+                    
+                    if (targetLocation && canMoveCards(cards, targetLocation)) {
+                        moveCards(cards, source, targetLocation);
+                    }
+                }
+            } else if (touchDuration < 200) {
                 // Короткое касание - попытка автоматического перемещения
                 const target = findBestTarget(draggedElement);
                 if (target) {
@@ -591,7 +625,10 @@ function setupTouchEvents() {
             }
             
             draggedElement.style.transform = '';
+            draggedElement.classList.remove('dragging');
+            document.body.classList.remove('dragging');
             draggedElement = null;
+            isDragging = false;
         }
     });
 }
