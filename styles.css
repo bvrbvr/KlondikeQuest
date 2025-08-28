@@ -44,7 +44,7 @@
   --avail-h: calc(var(--vh) - var(--csafe-top) - var(--csafe-bottom) - var(--ui-header-h));
 
   /* отбойник снизу: content safe area + запас (усиленный для iPhone 16 / телеграм-вебвью) */
-  --pad-bottom: calc(var(--csafe-bottom) + 40px);
+  --pad-bottom: calc(var(--csafe-bottom) + 44px);
 
   /* стек карт (пропорциональный) */
   --stack-open:   calc(var(--card-h) * -0.36);
