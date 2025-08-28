@@ -47,13 +47,10 @@ if (window.Telegram && window.Telegram.WebApp) {
 	}
 }
 
-// Флаг: использовать ли нативный HTML5 Drag&Drop (только десктоп)
+// Флаг: использовать ли нативный HTML5 Drag&Drop (отключаем на тач-устройствах)
 const USE_NATIVE_DND = (function() {
-    const isTelegram = !!(window.Telegram && window.Telegram.WebApp);
-    const hasPointerFine = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    // В Telegram и на мобильных не используем нативный DnD — только наш touch-режим
-    return !isTelegram && hasPointerFine && !isIOS;
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    return !isTouchDevice;
 })();
 
 // Константы игры
@@ -599,7 +596,8 @@ function setupTouchEvents() {
     // Начало жеста: сразу блокируем скролл и помечаем карту
     document.addEventListener('touchstart', (e) => {
       const card = e.target.closest('.card');
-      if (card && card.draggable) {
+      const isFaceUp = card && !card.classList.contains('face-down');
+      if (card && isFaceUp) {
         addNoScroll();
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
