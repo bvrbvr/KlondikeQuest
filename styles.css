@@ -17,30 +17,32 @@
   --vw: var(--tg-vw, 100vw);
   --vh: var(--tg-vh, 100dvh);
 
-  /* content safe area (truth in Telegram WebView) */
+  /* content safe area (главный источник правды в Telegram WebView) */
   --csafe-top:    var(--tg-csafe-top,    env(safe-area-inset-top, 0px));
   --csafe-right:  var(--tg-csafe-right,  env(safe-area-inset-right, 0px));
   --csafe-bottom: var(--tg-csafe-bottom, env(safe-area-inset-bottom, 0px));
   --csafe-left:   var(--tg-csafe-left,   env(safe-area-inset-left, 0px));
 
   /* sizes */
-  /* карта подгоняется от ширины экрана: берём минимум из 12vw и vw/8, но не меньше 40 и не больше 78 */
+  /* Ширина карты — от реальной ширины экрана, ограничена 40–78 */
   --card-max: clamp(40px, min(12vw, calc(var(--vw) / 8)), 78px);
-  --card-h: calc(var(--card-max) * 1.4); /* aspect 2.5:3.5 ≈ 1:1.4 */
+  --card-h: calc(var(--card-max) * 1.4); /* 2.5:3.5 */
 
   --font-s: clamp(8px, 2.2vw, 12px);
   --font-m: clamp(10px, 2.6vw, 15px);
 
-  /* доступная высота минус шапка/сейф-арии */
-  --ui-header-h: 48px;
+  /* chrome */
+  --ui-header-h: 44px;
+
+  /* доступная высота под поле (минус шапка и сейф-арии) */
   --avail-h: calc(var(--vh) - var(--csafe-top) - var(--csafe-bottom) - var(--ui-header-h));
 
-  /* отбойник снизу: content safe area + запас */
-  --pad-bottom: calc(var(--csafe-bottom) + 28px);
+  /* нижний «отбойник»: content safe area + запас */
+  --pad-bottom: calc(var(--csafe-bottom) + 36px);
 
-  /* стек карт (пропорциональный) */
-  --stack-open:   calc(var(--card-h) * -0.38);
-  --stack-closed: calc(var(--card-h) * -0.30);
+  /* стек карт (по умолчанию) */
+  --stack-open:   calc(var(--card-h) * -0.36);
+  --stack-closed: calc(var(--card-h) * -0.28);
 }
 
 [data-theme="dark"]{
@@ -75,23 +77,23 @@ body{
            calc(6px + var(--csafe-left));
   display:flex; flex-direction:column; gap:8px;
 
-  /* собственный скролл + запас для автопрокруток */
+  /* собственный скролл + большой отступ для автопрокруток и дна */
   overflow-y:auto;
   scroll-padding-top:calc(var(--ui-header-h) + 8px);
-  scroll-padding-bottom:calc(var(--pad-bottom) + 100px);
+  scroll-padding-bottom:calc(var(--pad-bottom) + 120px);
   position:relative; z-index:1;
 }
 
-/* страховочный отбойник — на случай, если webview срежет паддинги */
+/* страховочный отбойник — если webview съест паддинги */
 .game-container::after{
-  content:""; display:block; height:calc(var(--pad-bottom) + 100px); flex:0 0 auto;
+  content:""; display:block; height:calc(var(--pad-bottom) + 120px); flex:0 0 auto;
 }
 
 .game-header{
   position:sticky; top:var(--csafe-top); z-index:5;
   display:flex; align-items:center; justify-content:space-between;
   gap:8px;
-  padding:8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
+  padding:6px calc(8px + var(--csafe-right)) 6px calc(8px + var(--csafe-left));
   min-height:var(--ui-header-h);
   background:var(--bg-color);
 }
@@ -106,8 +108,8 @@ body{
 
 .game-controls{display:flex;gap:6px;flex-wrap:wrap}
 .btn{
-  padding:7px 12px;border:0;border-radius:8px;
-  font-size:12px;font-weight:600;min-height:36px;min-width:72px;
+  padding:7px 10px;border:0;border-radius:8px;
+  font-size:12px;font-weight:600;min-height:34px;min-width:70px;
   cursor:pointer;transition:opacity .2s,transform .2s;
   touch-action:manipulation;
 }
@@ -130,7 +132,7 @@ body{
   width:100%; max-width:clamp(150px,48vw,380px);
 }
 .foundation-slot{
-  aspect-ratio:2.5/3.5; min-height:58px; max-width:var(--card-max);
+  aspect-ratio:2.5/3.5; min-height:56px; max-width:var(--card-max);
   background:var(--slot-bg); border:2px dashed var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
   transition:border-color .2s;
@@ -145,7 +147,7 @@ body{
 }
 .stock-container,.waste-container{flex:1; max-width:var(--card-max)}
 .stock,.waste{
-  aspect-ratio:2.5/3.5; min-height:58px; max-width:var(--card-max);
+  aspect-ratio:2.5/3.5; min-height:56px; max-width:var(--card-max);
   background:var(--slot-bg); border:2px solid var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; position:relative; transition:border-color .2s;
@@ -164,8 +166,9 @@ body{
   background:var(--slot-bg); border:2px dashed var(--slot-border);
   border-radius:10px;
 
-  /* min-height зависит от доступной высоты: 25–30% avail */
-  min-height: clamp(88px, calc(max(var(--avail-h), 320px) * 0.28), 360px);
+  /* min-height считается от доступной высоты: 22–28% */
+  /* max() страхует от слишком маленькой высоты при аномальном вьюпорте */
+  min-height: clamp(88px, calc(max(var(--avail-h), 320px) * 0.26), 340px);
 
   padding:5px; position:relative; transition:border-color .2s;
 }
@@ -234,20 +237,30 @@ body{
 .card,.slot{will-change:transform}
 @media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){.card{border-width:.5px}}
 
-/* ============ Height-based compression (когда мало вертикали) ============ */
+/* ============ Height-based compression (когда мало/много вертикали) ============ */
+/* мало места: сильнее сжимаем стопки и колонку */
 @media (max-height:830px){
   :root{
-    --stack-open:calc(var(--card-h)*-0.35);
-    --stack-closed:calc(var(--card-h)*-0.28);
+    --stack-open:calc(var(--card-h)*-0.33);
+    --stack-closed:calc(var(--card-h)*-0.26);
   }
-  .tableau-slot{min-height: clamp(84px, calc(max(var(--avail-h), 300px) * 0.26), 320px)}
+  .tableau-slot{min-height: clamp(82px, calc(max(var(--avail-h), 300px) * 0.24), 320px)}
 }
 @media (max-height:760px){
   :root{
-    --stack-open:calc(var(--card-h)*-0.32);
+    --stack-open:calc(var(--card-h)*-0.30);
+    --stack-closed:calc(var(--card-h)*-0.24);
+  }
+  .tableau-slot{min-height: clamp(78px, calc(max(var(--avail-h), 260px) * 0.22), 300px)}
+}
+
+/* много места (длинные экраны, iPhone 16/Plus/Pro Max): чуть меньше перекрытие + больше отбойник */
+@media (min-height:900px){
+  :root{
+    --pad-bottom: calc(var(--csafe-bottom) + 44px);
+    --stack-open:calc(var(--card-h)*-0.34);
     --stack-closed:calc(var(--card-h)*-0.26);
   }
-  .tableau-slot{min-height: clamp(80px, calc(max(var(--avail-h), 260px) * 0.24), 300px)}
 }
 
 /* ============ Width breakpoints (без «моделей») ============ */
@@ -289,10 +302,6 @@ body{
 .leaderboard-stats{font-size:12px;opacity:.8;margin-top:2px}
 .stats-footer{margin-top:16px;padding:12px;background:var(--slot-bg);border-radius:8px;text-align:center;font-size:14px}
 .stats-footer p{margin:0;font-weight:600}
-
-/* ============ Win Stats ============ */
-.win-stats{margin:14px 0;padding:12px;background:var(--slot-bg);border-radius:10px}
-.win-stats p{margin:5px 0;font-weight:600}
 
 /* ============ Card animations / Hints ============ */
 @keyframes cardFlip{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
