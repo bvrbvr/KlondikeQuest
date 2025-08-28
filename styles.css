@@ -128,7 +128,7 @@ body{
   align-content:start;
   width:100%;
   max-width:var(--tableau-maxw);
-  margin:0 auto 6px auto;
+  margin:16px auto 6px auto;         /* ← было 0 auto 6px auto; теперь сверху 16px */
 }
 .foundation-slot{
   width:var(--card-max);              /* ← слот = ширина карты */
