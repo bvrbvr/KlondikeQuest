@@ -720,15 +720,22 @@ function checkWin() {
         // Сохранение результата
         saveGameResult();
         
-        // Показ popup в Telegram
-        if (tg && tg.showPopup) {
-            tg.showPopup({
-                title: 'Поздравляем!',
-                message: `Вы собрали все карты за ${formatTime(gameState.timer)} и ${gameState.moves} ходов!`,
-                buttons: [
-                    { type: 'ok', text: 'Отлично!' }
-                ]
-            });
+        // Показ popup в Telegram (с проверкой поддержки)
+        if (tg && typeof tg.showPopup === 'function') {
+            try {
+                tg.showPopup({
+                    title: 'Поздравляем!',
+                    message: `Вы собрали все карты за ${formatTime(gameState.timer)} и ${gameState.moves} ходов!`,
+                    buttons: [
+                        { type: 'ok', text: 'Отлично!' }
+                    ]
+                });
+            } catch (e) {
+                console.log('showPopup не поддерживается, показываем модальное окно');
+                showWinModal();
+            }
+        } else {
+            showWinModal();
         }
         // Показ статистики (через MainButton после победы и горячая клавиша S)
         async function showStatistics() {
@@ -982,7 +989,7 @@ async function fetchStats() {
 
 function getApiBase() {
     const envHost = 'zioj.duckdns.org';
-    const baseUrl = 'https://' + envHost + '/api/api/v1/';
+    const baseUrl = 'https://' + envHost + '/api/api/v1';
     
     console.log('API Base URL:', baseUrl);
     return baseUrl;
@@ -990,8 +997,12 @@ function getApiBase() {
 
 function showStatsPopup(stats) {
 	if (!stats) {
-		if (tg && tg.showPopup) {
-			return tg.showPopup({ title: 'Статистика', message: 'Статистика недоступна', buttons: [{ type: 'ok', text: 'Ок' }] });
+		if (tg && typeof tg.showPopup === 'function') {
+			try {
+				return tg.showPopup({ title: 'Статистика', message: 'Статистика недоступна', buttons: [{ type: 'ok', text: 'Ок' }] });
+			} catch (e) {
+				return alert('Статистика недоступна');
+			}
 		}
 		return alert('Статистика недоступна');
 	}
@@ -1003,8 +1014,12 @@ function showStatsPopup(stats) {
 		stats.averageTime != null ? `Среднее время: ${fmt(stats.averageTime)}` : null,
 		stats.averageMoves != null ? `Средние ходы: ${stats.averageMoves}` : null
 	].filter(Boolean).join('\n');
-	if (tg && tg.showPopup) {
-		tg.showPopup({ title: 'Статистика', message: msg, buttons: [{ type: 'ok', text: 'Ок' }] });
+	if (tg && typeof tg.showPopup === 'function') {
+		try {
+			tg.showPopup({ title: 'Статистика', message: msg, buttons: [{ type: 'ok', text: 'Ок' }] });
+		} catch (e) {
+			alert(msg);
+		}
 	} else {
 		alert(msg);
 	}
@@ -1371,8 +1386,12 @@ function hasAnyMoves() {
 function notifyNoMovesIfNeeded() {
 	if (!hasAnyMoves()) {
 		const message = 'Нет доступных ходов. Конец игры.';
-		if (tg && tg.showPopup) {
-			tg.showPopup({ title: 'Игра окончена', message, buttons: [{ type: 'ok', text: 'Ок' }] });
+		if (tg && typeof tg.showPopup === 'function') {
+			try {
+				tg.showPopup({ title: 'Игра окончена', message, buttons: [{ type: 'ok', text: 'Ок' }] });
+			} catch (e) {
+				alert(message);
+			}
 		} else {
 			alert(message);
 		}
@@ -1439,23 +1458,23 @@ function createRippleEffect(x, y) {
     const ripple = document.createElement('div');
     ripple.style.cssText = `
         position: fixed;
-        left: ${x - 25}px;
-        top: ${y - 25}px;
-        width: 50px;
-        height: 50px;
-        border: 2px solid var(--btn-primary-bg);
+        left: ${x - 15}px;
+        top: ${y - 15}px;
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--btn-primary-bg);
         border-radius: 50%;
-        opacity: 0.6;
+        opacity: 0.4;
         z-index: 0;
         pointer-events: none;
-        animation: ripple 1s ease-out forwards;
+        animation: ripple 0.8s ease-out forwards;
     `;
     
     document.body.appendChild(ripple);
     
     setTimeout(() => {
         ripple.remove();
-    }, 1000);
+    }, 800);
 }
 
 // Добавляем CSS для эффекта волн
@@ -1464,10 +1483,10 @@ rippleStyle.textContent = `
     @keyframes ripple {
         0% {
             transform: scale(0);
-            opacity: 0.6;
+            opacity: 0.4;
         }
         100% {
-            transform: scale(4);
+            transform: scale(2);
             opacity: 0;
         }
     }

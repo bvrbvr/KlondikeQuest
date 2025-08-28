@@ -107,10 +107,10 @@ body {
   position: absolute;
   width: 40px;
   height: 56px;
-  background: linear-gradient(45deg, #e3f2fd, #bbdefb);
-  border: 1px solid #90caf9;
+  background: linear-gradient(45deg, #2196f3, #1976d2);
+  border: 1px solid #1565c0;
   border-radius: 6px;
-  opacity: 0.15;
+  opacity: 0.25;
   animation: float 15s infinite linear;
   transform-origin: center;
   transition: background-color 0.3s, border-color 0.3s;
@@ -135,23 +135,23 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 20px;
-  color: #1976d2;
-  opacity: 0.4;
+  color: #ffffff;
+  opacity: 0.8;
 }
 
 .floating-card:nth-child(odd)::before {
   content: "♥";
-  color: #d32f2f;
+  color: #ffcdd2;
 }
 
 .floating-card:nth-child(3n)::before {
   content: "♦";
-  color: #d32f2f;
+  color: #ffcdd2;
 }
 
 .floating-card:nth-child(4n)::before {
   content: "♣";
-  color: #1976d2;
+  color: #ffffff;
 }
 
 @keyframes float {
