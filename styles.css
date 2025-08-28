@@ -28,7 +28,7 @@
   --ui-header-h: 48px;
 
   /* верхняя плавающая панель Telegram (Close/…); при необходимости подкорректируй */
-  --tg-topbar-gap: 56px;
+  --tg-topbar-gap: 72px;
 
   /* расстояние между нашей шапкой и foundation */
 --header-gap: clamp(24px, 4vh, 36px);
@@ -82,6 +82,11 @@ body{
   -webkit-tap-highlight-color:transparent; touch-action:manipulation;
 }
 
+.card, img, a {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 html.dragging {
   overflow: hidden !important;
   position: fixed !important;
@@ -110,6 +115,7 @@ html.dragging {
 .game-container::before{
   content:"";
   display:block;
+  /* учитываем и safe-area-top, и реальную topbar */
   height: calc(var(--csafe-top) + var(--tg-topbar-gap));
   flex:0 0 auto;
 }
@@ -121,9 +127,9 @@ html.dragging {
 
 /* ——— HEADER ——— */
 .game-header{
-  position:sticky;
-  top: calc(var(--csafe-top) + 24px);  /* немного ниже системной шапки Telegram */
-  z-index:5;
+  position: sticky;
+  top: calc(var(--csafe-top) + var(--tg-topbar-gap) + 8px); /* было +24px без topbar */
+  z-index: 5;
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding:8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
   min-height:var(--ui-header-h);
@@ -163,14 +169,15 @@ html.dragging {
 .foundation-slot{
   width:var(--card-max);
   aspect-ratio:2.5/3.5; min-height:58px;
-  background:rgba(255,255,255,0.9); border:2px dashed var(--slot-border);
+  background: transparent; border:2px dashed var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
   transition:border-color .2s, background-color .2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  backdrop-filter: none;
 }
 .foundation-slot:hover{
   border-color:var(--btn-primary-bg);
-  background:rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.06);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -184,14 +191,15 @@ html.dragging {
 .stock,.waste{
   width:var(--card-max);
   aspect-ratio:2.5/3.5; min-height:58px;
-  background:rgba(255,255,255,0.9); border:2px solid var(--slot-border);
+  background: transparent; border:2px solid var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; position:relative; transition:border-color .2s, background-color .2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  backdrop-filter: none;
 }
 .stock:hover,.waste:hover{
   border-color:var(--btn-primary-bg);
-  background:rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.06);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -211,7 +219,7 @@ html.dragging {
 }
 .tableau-slot{
   width:var(--card-max);
-  background:rgba(255,255,255,0.9); border:2px dashed var(--slot-border);
+  background: transparent; border:2px dashed var(--slot-border);
   border-radius:10px;
 
   /* динамическая высота от доступной вертикали */
@@ -220,10 +228,11 @@ html.dragging {
 
   padding:5px; position:relative; transition:border-color .2s, background-color .2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  backdrop-filter: none;
 }
 .tableau-slot:hover{
   border-color:var(--btn-primary-bg);
-  background:rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.06);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -280,6 +289,7 @@ body.dragging {
 .tableau-area.dragging {
   overflow: hidden !important;
   touch-action: none !important;
+  overscroll-behavior: contain !important;
 }
 
 /* Улучшенные стили для перетаскивания на мобильных */

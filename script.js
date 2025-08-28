@@ -570,13 +570,21 @@ function setupTouchEvents() {
     document.addEventListener('touchstart', (e) => {
         const card = e.target.closest('.card');
         if (card && card.draggable) {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            touchStartTime = Date.now();
-            draggedElement = card;
-            isDragging = false;
+          // Сразу блокируем прокрутку страницы до окончания жеста
+          document.documentElement.classList.add('dragging');
+          document.body.classList.add('dragging');
+          document.querySelector('.game-container')?.classList.add('dragging');
+      
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          touchStartTime = Date.now();
+          draggedElement = card;
+          isDragging = false;
+      
+          e.preventDefault();
+          e.stopPropagation();
         }
-    });
+      }, { passive: false });
     
     document.addEventListener('touchmove', (e) => {
         if (draggedElement) {
@@ -651,6 +659,7 @@ function setupTouchEvents() {
             draggedElement.classList.remove('dragging');
             document.documentElement.classList.remove('dragging');
             document.body.classList.remove('dragging');
+            document.querySelector('.game-container')?.classList.remove('dragging');
             draggedElement = null;
             isDragging = false;
         }
