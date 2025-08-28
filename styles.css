@@ -98,7 +98,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   overflow: hidden;
 }
@@ -114,6 +114,18 @@ body {
   animation: float 15s infinite linear;
   transform-origin: center;
   transition: background-color 0.3s, border-color 0.3s;
+}
+
+@media (max-width: 393px) {
+  .floating-card {
+    width: 30px;
+    height: 42px;
+    border-radius: 4px;
+  }
+  
+  .floating-card::before {
+    font-size: 16px;
+  }
 }
 
 .floating-card::before {
@@ -205,6 +217,42 @@ body {
   }
 }
 
+/* Подсветка подсказок */
+.hint-highlight {
+  animation: hint-pulse 1s ease-in-out infinite;
+  border-color: #ffd700 !important;
+  background-color: rgba(255, 215, 0, 0.1) !important;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes hint-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+}
+
+@keyframes hint-fade-in-out {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
 /* Remove large spacer that caused extra white gap on iPhones */
 .game-container::after { content: none; }
 
@@ -261,6 +309,13 @@ body {
   display: none;
 }
 
+@media (max-width: 393px) {
+  .timer-hint {
+    font-size: 7px;
+    margin-top: 1px;
+  }
+}
+
 .timer.not-started .timer-hint {
   display: block;
   animation: fade-in-out 2s infinite;
@@ -311,6 +366,21 @@ body {
   background: var(--btn-secondary-bg);
   color: var(--btn-secondary-color);
 }
+
+.btn-hint {
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  color: #333;
+  font-weight: 700;
+}
+
+.btn-hint:hover {
+  background: linear-gradient(45deg, #ffed4e, #ffd700);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.btn-hint:active {
+  transform: translateY(0) scale(1);
+}
 .btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
@@ -350,6 +420,14 @@ body {
   justify-content: center;
   transition: border-color 0.2s;
 }
+
+@media (max-width: 393px) {
+  .foundation-slot {
+    min-height: 50px;
+    border-radius: 8px;
+    border-width: 1px;
+  }
+}
 .foundation-slot:hover {
   border-color: var(--btn-primary-bg);
 }
@@ -383,6 +461,15 @@ body {
   position: relative;
   transition: border-color 0.2s;
 }
+
+@media (max-width: 393px) {
+  .stock,
+  .waste {
+    min-height: 50px;
+    border-radius: 8px;
+    border-width: 1px;
+  }
+}
 .stock:hover,
 .waste:hover {
   border-color: var(--btn-primary-bg);
@@ -408,6 +495,13 @@ body {
   position: relative;
   transition: border-color 0.2s;
 }
+
+@media (max-width: 393px) {
+  .tableau-slot {
+    border-width: 1px;
+    border-radius: 8px;
+  }
+}
 .tableau-slot:hover {
   border-color: var(--btn-primary-bg);
 }
@@ -432,6 +526,22 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s, opacity 0.2s;
   touch-action: none;
+}
+
+/* Уменьшаем padding для маленьких карт */
+@media (max-width: 393px) {
+  .card {
+    padding: 2px;
+    border-radius: 6px;
+  }
+  
+  .card-value {
+    font-size: calc(var(--font-s) + 1px);
+  }
+  
+  .card-suit {
+    font-size: calc(var(--font-s) + 2px);
+  }
 }
 .card:active {
   cursor: grabbing;
@@ -566,6 +676,12 @@ body {
    Responsive (iPhone-specific)
    ========================= */
 @media (max-width: 428px) { /* iPhone 13, 14, 15, 16, Pro, Pro Max */
+  :root {
+    --card-max: clamp(32px, 10vw, 60px);
+    --font-s: clamp(7px, 1.8vw, 9px);
+    --font-m: clamp(9px, 2.2vw, 12px);
+  }
+  
   .game-header {
     flex-wrap: wrap;
     align-items: flex-start;
@@ -631,6 +747,61 @@ body {
   }
   .game-container::after {
     height: calc(80px + var(--safe-bottom-pad));
+  }
+}
+
+/* iPhone 16 и другие узкие экраны */
+@media (max-width: 393px) { /* iPhone 16, 15, 14 */
+  :root {
+    --card-max: clamp(28px, 8.5vw, 52px);
+    --font-s: clamp(6px, 1.6vw, 8px);
+    --font-m: clamp(8px, 2vw, 11px);
+    --stack-open: calc(var(--card-h) * -0.45);
+    --stack-closed: calc(var(--card-h) * -0.37);
+  }
+  
+  .tableau-area {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+    max-width: clamp(180px, 78vw, 650px);
+  }
+  
+  .foundation-area {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: clamp(110px, 40vw, 300px);
+    gap: 3px;
+  }
+  
+  .stock-waste-area {
+    max-width: clamp(90px, 38vw, 160px);
+    gap: 4px;
+  }
+  
+  .tableau-slot {
+    min-height: clamp(70px, 20dvh, 260px);
+    padding: 2px;
+  }
+  
+  .game-header {
+    padding: 1px calc(3px + env(safe-area-inset-right)) 1px
+             calc(3px + env(safe-area-inset-left));
+  }
+  
+  .game-info {
+    gap: 4px;
+    font-size: 8px;
+  }
+  
+  .btn {
+    min-width: 60px;
+    padding: 4px 6px;
+    font-size: 9px;
+    min-height: 40px;
+  }
+  
+  #hint-btn {
+    font-size: 8px;
+    padding: 3px 5px;
   }
 }
 

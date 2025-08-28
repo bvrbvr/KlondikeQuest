@@ -46,6 +46,7 @@ const elements = {
     moves: document.getElementById('moves'),
     newGameBtn: document.getElementById('new-game-btn'),
     undoBtn: document.getElementById('undo-btn'),
+    hintBtn: document.getElementById('hint-btn'),
     stock: document.getElementById('stock'),
     waste: document.getElementById('waste'),
     winModal: document.getElementById('win-modal'),
@@ -232,6 +233,7 @@ function setupEventListeners() {
     // Кнопки управления
     elements.newGameBtn.addEventListener('click', newGame);
     elements.undoBtn.addEventListener('click', undoMove);
+    elements.hintBtn.addEventListener('click', showHint);
     elements.shareResultBtn.addEventListener('click', shareResult);
     elements.playAgainBtn.addEventListener('click', () => {
         hideWinModal();
@@ -781,6 +783,99 @@ function createCelebrationCards() {
     }
 }
 
+// Показ подсказки
+function showHint() {
+    const bestMove = findBestMove();
+    
+    if (!bestMove) {
+        // Если нет доступных ходов, предлагаем взять карту из колоды
+        if (gameState.stock.length > 0) {
+            showHintMessage('Возьмите карту из колоды');
+        } else {
+            showHintMessage('Нет доступных ходов. Попробуйте отменить последний ход или начать новую игру.');
+        }
+        return;
+    }
+    
+    // Подсвечиваем карту и цель
+    highlightHint(bestMove);
+    
+    // Показываем сообщение с подсказкой
+    showHintMessage(bestMove.description);
+}
+
+// Подсветка подсказки
+function highlightHint(move) {
+    // Убираем предыдущие подсветки
+    clearHintHighlights();
+    
+    // Подсвечиваем источник
+    const sourceElement = getElementByLocation(move.source);
+    if (sourceElement) {
+        sourceElement.classList.add('hint-highlight');
+    }
+    
+    // Подсвечиваем цель
+    const targetElement = getElementByLocation(move.target);
+    if (targetElement) {
+        targetElement.classList.add('hint-highlight');
+    }
+    
+    // Убираем подсветку через 3 секунды
+    setTimeout(clearHintHighlights, 3000);
+}
+
+// Получение элемента по местоположению
+function getElementByLocation(location) {
+    if (location.type === 'tableau') {
+        return document.querySelector(`[data-slot="tableau-${location.index}"]`);
+    } else if (location.type === 'foundation') {
+        return document.querySelector(`[data-slot="foundation-${location.index}"]`);
+    } else if (location.type === 'waste') {
+        return document.getElementById('waste');
+    }
+    return null;
+}
+
+// Очистка подсветки подсказок
+function clearHintHighlights() {
+    document.querySelectorAll('.hint-highlight').forEach(el => {
+        el.classList.remove('hint-highlight');
+    });
+}
+
+// Показ сообщения с подсказкой
+function showHintMessage(message) {
+    // Создаем временное сообщение
+    const hintMessage = document.createElement('div');
+    hintMessage.className = 'hint-message';
+    hintMessage.textContent = message;
+    hintMessage.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 1001;
+        pointer-events: none;
+        animation: hint-fade-in-out 3s ease-in-out forwards;
+    `;
+    
+    document.body.appendChild(hintMessage);
+    
+    // Удаляем сообщение через 3 секунды
+    setTimeout(() => {
+        if (hintMessage.parentNode) {
+            hintMessage.parentNode.removeChild(hintMessage);
+        }
+    }, 3000);
+}
+
 // Триггер празднования на фоне при успешном ходе
 function triggerBackgroundCelebration() {
     const cards = document.querySelectorAll('.floating-card:not(.celebration-card)');
@@ -843,22 +938,38 @@ function saveGameResult() {
 async function postResultToBackend(result) {
 	const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || null;
 	const username = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username) || null;
+	const url = getApiBase() + '/results';
+	
+	console.log('Отправка результата на:', url);
+	
 	try {
-		await fetch(getApiBase() + '/results', {
+		const response = await fetch(url, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ ...result, userId, username })
 		});
+		
+		if (response.ok) {
+			console.log('Результат успешно отправлен');
+		} else {
+			console.warn('Ошибка отправки результата:', response.status, response.statusText);
+		}
 	} catch (e) {
 		console.warn('Не удалось отправить результат на сервер:', e);
 	}
 }
 
 async function fetchStats() {
+	const url = getApiBase() + '/stats';
+	
+	console.log('Запрос статистики с:', url);
+	
 	try {
-		const res = await fetch(getApiBase() + '/stats');
+		const res = await fetch(url);
 		if (!res.ok) throw new Error('HTTP ' + res.status);
-		return await res.json();
+		const data = await res.json();
+		console.log('Статистика получена:', data);
+		return data;
 	} catch (e) {
 		console.warn('Не удалось получить статистику:', e);
 		return null;
@@ -867,10 +978,10 @@ async function fetchStats() {
 
 function getApiBase() {
     const envHost = 'zioj.duckdns.org';
-    // Если работаем локально (localhost или file://), используем локальный бэкенд
-    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
-    if (isLocal) return 'http://localhost:3000/api';
-    return 'https://' + envHost + '/api/api/v1';
+    const baseUrl = 'https://' + envHost + '/api/api/v1/';
+    
+    console.log('API Base URL:', baseUrl);
+    return baseUrl;
 }
 
 function showStatsPopup(stats) {
@@ -1056,6 +1167,113 @@ function findBestTarget(cardElement) {
     }
     
     return null;
+}
+
+// Поиск лучшего хода для подсказки
+function findBestMove() {
+    const moves = [];
+    
+    // 1. Проверяем тузы (приоритет 1)
+    for (let t = 0; t < 7; t++) {
+        const pile = gameState.tableau[t];
+        if (pile.length > 0) {
+            const topCard = pile[pile.length - 1];
+            if (topCard.faceUp && topCard.value === 'A') {
+                for (let f = 0; f < 4; f++) {
+                    if (canMoveToFoundation(topCard, f)) {
+                        moves.push({
+                            priority: 1,
+                            source: { type: 'tableau', index: t },
+                            target: { type: 'foundation', index: f },
+                            card: topCard,
+                            description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation`
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    // 2. Проверяем карты из waste (приоритет 2)
+    if (gameState.waste.length > 0) {
+        const topCard = gameState.waste[gameState.waste.length - 1];
+        for (let f = 0; f < 4; f++) {
+            if (canMoveToFoundation(topCard, f)) {
+                moves.push({
+                    priority: 2,
+                    source: { type: 'waste', index: 0 },
+                    target: { type: 'foundation', index: f },
+                    card: topCard,
+                    description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в foundation`
+                });
+            }
+        }
+    }
+    
+    // 3. Проверяем королей для пустых tableau (приоритет 3)
+    for (let t = 0; t < 7; t++) {
+        if (gameState.tableau[t].length === 0) {
+            // Ищем королей в других tableau
+            for (let sourceT = 0; sourceT < 7; sourceT++) {
+                if (sourceT === t) continue;
+                const pile = gameState.tableau[sourceT];
+                if (pile.length > 0) {
+                    const topCard = pile[pile.length - 1];
+                    if (topCard.faceUp && topCard.value === 'K') {
+                        moves.push({
+                            priority: 3,
+                            source: { type: 'tableau', index: sourceT },
+                            target: { type: 'tableau', index: t },
+                            card: topCard,
+                            description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в пустой tableau`
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    // 4. Проверяем обычные ходы в tableau (приоритет 4)
+    for (let t = 0; t < 7; t++) {
+        const pile = gameState.tableau[t];
+        if (pile.length > 0) {
+            const topCard = pile[pile.length - 1];
+            if (topCard.faceUp) {
+                for (let targetT = 0; targetT < 7; targetT++) {
+                    if (targetT === t) continue;
+                    if (canMoveToTableau(topCard, targetT)) {
+                        moves.push({
+                            priority: 4,
+                            source: { type: 'tableau', index: t },
+                            target: { type: 'tableau', index: targetT },
+                            card: topCard,
+                            description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в tableau`
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    // 5. Проверяем ходы из waste в tableau (приоритет 5)
+    if (gameState.waste.length > 0) {
+        const topCard = gameState.waste[gameState.waste.length - 1];
+        for (let t = 0; t < 7; t++) {
+            if (canMoveToTableau(topCard, t)) {
+                moves.push({
+                    priority: 5,
+                    source: { type: 'waste', index: 0 },
+                    target: { type: 'tableau', index: t },
+                    card: topCard,
+                    description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в tableau`
+                });
+            }
+        }
+    }
+    
+    // Сортируем по приоритету и возвращаем лучший ход
+    moves.sort((a, b) => a.priority - b.priority);
+    return moves.length > 0 ? moves[0] : null;
 }
 
 // Настройка двойного клика для тузов
