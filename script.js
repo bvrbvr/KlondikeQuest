@@ -560,7 +560,7 @@ function setupTouchEvents() {
     
     // Предотвращение прокрутки при перетаскивании
     document.addEventListener('touchmove', (e) => {
-        if (isDragging) {
+        if (isDragging || draggedElement) {
             e.preventDefault();
             e.stopPropagation();
             return false;
@@ -570,10 +570,11 @@ function setupTouchEvents() {
     document.addEventListener('touchstart', (e) => {
       const card = e.target.closest('.card');
       if (card && card.draggable) {
-        // Сразу «фиксируем» страницу и контейнер
+        // Сразу блокируем ВСЁ
         document.documentElement.classList.add('dragging');
         document.body.classList.add('dragging');
         document.querySelector('.game-container')?.classList.add('dragging');
+        document.querySelector('.game-board')?.classList.add('dragging');
 
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -584,6 +585,8 @@ function setupTouchEvents() {
         // Критично для iOS/Telegram: не даём начаться скроллу
         e.preventDefault();
         e.stopPropagation();
+        
+        console.log('Touch start on card:', card.dataset.suit, card.dataset.value);
       }
     }, { passive: false });
     
@@ -594,14 +597,17 @@ function setupTouchEvents() {
             const deltaY = touch.clientY - touchStartY;
             
             // Если движение больше порога, начинаем перетаскивание
-            if (!isDragging && (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15)) {
+            if (!isDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
                 isDragging = true;
                 draggedElement.classList.add('dragging');
+                console.log('Started dragging card');
             }
             
+            // ВСЕГДА блокируем прокрутку если есть draggedElement
+            e.preventDefault();
+            e.stopPropagation();
+            
             if (isDragging) {
-                e.preventDefault();
-                e.stopPropagation();
                 draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
             }
         }
@@ -620,10 +626,12 @@ function setupTouchEvents() {
                 const originalTransform = draggedElement.style.transform;
                 const originalPointer = draggedElement.style.pointerEvents;
                 const originalVisibility = draggedElement.style.visibility;
+                const originalOpacity = draggedElement.style.opacity;
 
                 draggedElement.style.transform = '';
-                draggedElement.style.pointerEvents = 'none';   // << главное
-                draggedElement.style.visibility = 'hidden';    // на всякий случай
+                draggedElement.style.pointerEvents = 'none';
+                draggedElement.style.visibility = 'hidden';
+                draggedElement.style.opacity = '0';
 
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                 console.log('Element below touch:', elementBelow);
@@ -642,6 +650,7 @@ function setupTouchEvents() {
                 draggedElement.style.transform = originalTransform;
                 draggedElement.style.pointerEvents = originalPointer || '';
                 draggedElement.style.visibility = originalVisibility || '';
+                draggedElement.style.opacity = originalOpacity || '';
                 
                 if (target) {
                     const cards = getCardSequence(draggedElement);
