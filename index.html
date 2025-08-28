@@ -11,7 +11,7 @@
     <title>Klondike Quest - Карточная игра</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=10">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -95,6 +95,19 @@
             </div>
         </main>
 
+        <!-- Модальное окно ввода псевдонима -->
+        <div id="nickname-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Добро пожаловать!</h2>
+                <p>Придумайте себе игровой псевдоним:</p>
+                <div class="nickname-input-container">
+                    <input type="text" id="nickname-input" class="nickname-input" placeholder="Введите псевдоним" maxlength="20">
+                    <div class="nickname-hint">Этот псевдоним будет отображаться в статистике</div>
+                </div>
+                <button id="save-nickname-btn" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+
         <!-- Модальное окно победы -->
         <div id="win-modal" class="modal hidden">
             <div class="modal-content">
@@ -108,8 +121,24 @@
                 <button id="play-again-btn" class="btn btn-secondary">Играть снова</button>
             </div>
         </div>
+
+        <!-- Модальное окно статистики -->
+        <div id="stats-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>📊 Лидерборд</h2>
+                <div class="leaderboard">
+                    <div id="leaderboard-list" class="leaderboard-list">
+                        <!-- Топ-5 игроков будет загружен здесь -->
+                    </div>
+                </div>
+                <div class="stats-footer">
+                    <p>Ваш псевдоним: <span id="user-nickname">Не установлен</span></p>
+                </div>
+                <button id="close-stats-btn" class="btn btn-secondary">Закрыть</button>
+            </div>
+        </div>
     </div>
 
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=9"></script>
 </body>
 </html>

@@ -56,7 +56,15 @@ const elements = {
     winTime: document.getElementById('win-time'),
     winMoves: document.getElementById('win-moves'),
     themeToggleBtn: document.getElementById('theme-toggle-btn'),
-    deckToggleBtn: document.getElementById('deck-toggle-btn')
+    deckToggleBtn: document.getElementById('deck-toggle-btn'),
+    // Новые элементы для псевдонимов и статистики
+    nicknameModal: document.getElementById('nickname-modal'),
+    nicknameInput: document.getElementById('nickname-input'),
+    saveNicknameBtn: document.getElementById('save-nickname-btn'),
+    statsModal: document.getElementById('stats-modal'),
+    leaderboardList: document.getElementById('leaderboard-list'),
+    userNickname: document.getElementById('user-nickname'),
+    closeStatsBtn: document.getElementById('close-stats-btn')
 };
 
 // Инициализация игры
@@ -68,10 +76,89 @@ function initGame() {
     setupEventListeners();
     applyTheme();
     applyDeck();
+    // Проверяем, есть ли у пользователя псевдоним
+    checkUserNickname();
     // Таймер не запускается автоматически - нужно сделать первый ход
     // startTimer();
     // Проверка отсутствия ходов на старте (на случай тупика после раздачи)
     notifyNoMovesIfNeeded();
+}
+
+// Проверка псевдонима пользователя
+function checkUserNickname() {
+    const nickname = localStorage.getItem('userNickname');
+    if (!nickname) {
+        showNicknameModal();
+    } else {
+        updateUserNicknameDisplay(nickname);
+    }
+}
+
+// Показать модальное окно для ввода псевдонима
+function showNicknameModal() {
+    elements.nicknameModal.classList.remove('hidden');
+    elements.nicknameInput.focus();
+}
+
+// Скрыть модальное окно псевдонима
+function hideNicknameModal() {
+    elements.nicknameModal.classList.add('hidden');
+}
+
+// Сохранить псевдоним
+function saveNickname() {
+    const nickname = elements.nicknameInput.value.trim();
+    if (nickname.length >= 2 && nickname.length <= 20) {
+        localStorage.setItem('userNickname', nickname);
+        updateUserNicknameDisplay(nickname);
+        hideNicknameModal();
+        
+        // Отправляем псевдоним на сервер для регистрации
+        registerUser(nickname);
+    } else {
+        alert('Псевдоним должен содержать от 2 до 20 символов');
+    }
+}
+
+// Обновить отображение псевдонима пользователя
+function updateUserNicknameDisplay(nickname) {
+    if (elements.userNickname) {
+        elements.userNickname.textContent = nickname;
+    }
+}
+
+// Регистрация пользователя на сервере
+async function registerUser(nickname) {
+    try {
+        const tgUser = tg?.initDataUnsafe?.user;
+        const userId = tgUser?.id;
+        const username = tgUser?.username;
+        
+        if (!userId) {
+            console.log('Не удалось получить ID пользователя Telegram');
+            return;
+        }
+        
+        const response = await fetch(getApiBase() + '/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                username: username,
+                nickname: nickname
+            })
+        });
+        
+        if (response.ok) {
+            console.log('Пользователь успешно зарегистрирован');
+        } else {
+            console.log('Ошибка при регистрации пользователя');
+        }
+    } catch (error) {
+        console.log('Ошибка при регистрации:', error);
+    }
 }
 
 // Создание колоды
@@ -243,6 +330,24 @@ function setupEventListeners() {
         hideWinModal();
         newGame();
     });
+    
+    // Новые обработчики для псевдонимов и статистики
+    if (elements.saveNicknameBtn) {
+        elements.saveNicknameBtn.addEventListener('click', saveNickname);
+    }
+    if (elements.closeStatsBtn) {
+        elements.closeStatsBtn.addEventListener('click', hideStatsModal);
+    }
+    
+    // Обработчик Enter для ввода псевдонима
+    if (elements.nicknameInput) {
+        elements.nicknameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveNickname();
+            }
+        });
+    }
+    
     // Гарантируем наличие кнопок темы и колоды (если отсутствуют в HTML)
     ensureControlButtons();
     // Переключение темы
@@ -949,6 +1054,7 @@ function saveGameResult() {
 async function postResultToBackend(result) {
 	const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || null;
 	const username = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username) || null;
+	const nickname = localStorage.getItem('userNickname') || null;
 	const url = getApiBase() + '/results';
 	
 	console.log('Отправка результата на:', url);
@@ -957,7 +1063,7 @@ async function postResultToBackend(result) {
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ ...result, userId, username })
+			body: JSON.stringify({ ...result, userId, username, nickname })
 		});
 		
 		if (response.ok) {
@@ -987,6 +1093,24 @@ async function fetchStats() {
 	}
 }
 
+// Получение лидерборда топ-5
+async function fetchLeaderboard() {
+	const url = getApiBase() + '/leaderboard';
+	
+	console.log('Запрос лидерборда с:', url);
+	
+	try {
+		const res = await fetch(url);
+		if (!res.ok) throw new Error('HTTP ' + res.status);
+		const data = await res.json();
+		console.log('Лидерборд получен:', data);
+		return data;
+	} catch (e) {
+		console.warn('Не удалось получить лидерборд:', e);
+		return null;
+	}
+}
+
 function getApiBase() {
     const envHost = 'zioj.duckdns.org';
     const baseUrl = 'https://' + envHost + '/api/api/v1';
@@ -995,34 +1119,69 @@ function getApiBase() {
     return baseUrl;
 }
 
-function showStatsPopup(stats) {
-	if (!stats) {
+// Показать лидерборд
+async function showLeaderboard() {
+	const leaderboard = await fetchLeaderboard();
+	
+	if (!leaderboard || !leaderboard.length) {
 		if (tg && typeof tg.showPopup === 'function') {
 			try {
-				return tg.showPopup({ title: 'Статистика', message: 'Статистика недоступна', buttons: [{ type: 'ok', text: 'Ок' }] });
+				return tg.showPopup({ title: 'Лидерборд', message: 'Лидерборд недоступен', buttons: [{ type: 'ok', text: 'Ок' }] });
 			} catch (e) {
-				return alert('Статистика недоступна');
+				return alert('Лидерборд недоступен');
 			}
 		}
-		return alert('Статистика недоступна');
+		return alert('Лидерборд недоступен');
 	}
-	const fmt = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-	const msg = [
-		`Игр: ${stats.totalGames}`,
-		stats.bestTime != null ? `Лучшее время: ${fmt(stats.bestTime)}` : null,
-		stats.bestMoves != null ? `Меньше ходов: ${stats.bestMoves}` : null,
-		stats.averageTime != null ? `Среднее время: ${fmt(stats.averageTime)}` : null,
-		stats.averageMoves != null ? `Средние ходы: ${stats.averageMoves}` : null
-	].filter(Boolean).join('\n');
-	if (tg && typeof tg.showPopup === 'function') {
-		try {
-			tg.showPopup({ title: 'Статистика', message: msg, buttons: [{ type: 'ok', text: 'Ок' }] });
-		} catch (e) {
-			alert(msg);
-		}
-	} else {
-		alert(msg);
-	}
+	
+	// Показываем модальное окно с лидербордом
+	showStatsModal();
+	renderLeaderboard(leaderboard);
+}
+
+// Показать модальное окно статистики
+function showStatsModal() {
+	elements.statsModal.classList.remove('hidden');
+}
+
+// Скрыть модальное окно статистики
+function hideStatsModal() {
+	elements.statsModal.classList.add('hidden');
+}
+
+// Отрисовка лидерборда
+function renderLeaderboard(leaderboard) {
+	if (!elements.leaderboardList) return;
+	
+	elements.leaderboardList.innerHTML = '';
+	
+	leaderboard.slice(0, 5).forEach((player, index) => {
+		const rank = index + 1;
+		const item = document.createElement('div');
+		item.className = `leaderboard-item rank-${rank}`;
+		
+		const rankElement = document.createElement('div');
+		rankElement.className = `leaderboard-rank rank-${rank}`;
+		rankElement.textContent = rank;
+		
+		const infoElement = document.createElement('div');
+		infoElement.className = 'leaderboard-info';
+		
+		const nicknameElement = document.createElement('div');
+		nicknameElement.className = 'leaderboard-nickname';
+		nicknameElement.textContent = player.nickname || 'Аноним';
+		
+		const statsElement = document.createElement('div');
+		statsElement.className = 'leaderboard-stats';
+		statsElement.textContent = `Время: ${formatTime(player.bestTime)} | Ходы: ${player.bestMoves}`;
+		
+		infoElement.appendChild(nicknameElement);
+		infoElement.appendChild(statsElement);
+		item.appendChild(rankElement);
+		item.appendChild(infoElement);
+		
+		elements.leaderboardList.appendChild(item);
+	});
 }
 
 // Поделиться результатом
@@ -1055,8 +1214,7 @@ function shareResult() {
 
 // Показ статистики (через MainButton после победы и горячая клавиша S)
 async function showStatistics() {
-	const stats = await fetchStats();
-	showStatsPopup(stats);
+	await showLeaderboard();
 }
 
 document.addEventListener('keydown', (e) => {

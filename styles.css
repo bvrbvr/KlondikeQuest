@@ -628,6 +628,120 @@ body {
   z-index: 1000;
   padding-top: env(safe-area-inset-top);
 }
+
+/* === Nickname Input === */
+.nickname-input-container {
+  margin: 20px 0;
+}
+
+.nickname-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--slot-border);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.nickname-input:focus {
+  outline: none;
+  border-color: var(--btn-primary-bg);
+}
+
+.nickname-hint {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* === Leaderboard === */
+.leaderboard {
+  margin: 20px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: var(--slot-bg);
+  border-radius: 8px;
+  border: 1px solid var(--slot-border);
+  transition: all 0.2s;
+}
+
+.leaderboard-item.rank-1 {
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  border-color: #ffc107;
+  color: #333;
+  font-weight: bold;
+}
+
+.leaderboard-item.rank-2 {
+  background: linear-gradient(45deg, #c0c0c0, #e0e0e0);
+  border-color: #9e9e9e;
+  color: #333;
+  font-weight: bold;
+}
+
+.leaderboard-item.rank-3 {
+  background: linear-gradient(45deg, #cd7f32, #daa520);
+  border-color: #b8860b;
+  color: #fff;
+  font-weight: bold;
+}
+
+.leaderboard-rank {
+  font-size: 18px;
+  font-weight: bold;
+  margin-right: 12px;
+  min-width: 30px;
+}
+
+.leaderboard-rank.rank-1::before { content: "🥇 "; }
+.leaderboard-rank.rank-2::before { content: "🥈 "; }
+.leaderboard-rank.rank-3::before { content: "🥉 "; }
+
+.leaderboard-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.leaderboard-nickname {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.leaderboard-stats {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.stats-footer {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--slot-bg);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.stats-footer p {
+  margin: 0;
+  font-weight: 600;
+}
 .modal.hidden {
   display: none;
 }
