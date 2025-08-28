@@ -568,17 +568,24 @@ function setupTouchEvents() {
     }, { passive: false });
     
     document.addEventListener('touchstart', (e) => {
-        const card = e.target.closest('.card');
-        if (card && card.draggable) {
-          touchStartX = e.touches[0].clientX;
-          touchStartY = e.touches[0].clientY;
-          touchStartTime = Date.now();
-          draggedElement = card;
-          isDragging = false;
-          
-          // НЕ блокируем прокрутку сразу, только если начнется реальное перетаскивание
-        }
-      }, { passive: true });
+      const card = e.target.closest('.card');
+      if (card && card.draggable) {
+        // Сразу «фиксируем» страницу и контейнер
+        document.documentElement.classList.add('dragging');
+        document.body.classList.add('dragging');
+        document.querySelector('.game-container')?.classList.add('dragging');
+
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+        draggedElement = card;
+        isDragging = false;
+
+        // Критично для iOS/Telegram: не даём начаться скроллу
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, { passive: false });
     
     document.addEventListener('touchmove', (e) => {
         if (draggedElement) {
@@ -590,10 +597,6 @@ function setupTouchEvents() {
             if (!isDragging && (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15)) {
                 isDragging = true;
                 draggedElement.classList.add('dragging');
-                // ТОЛЬКО СЕЙЧАС блокируем прокрутку
-                document.documentElement.classList.add('dragging');
-                document.body.classList.add('dragging');
-                document.querySelector('.game-container')?.classList.add('dragging');
             }
             
             if (isDragging) {
@@ -613,11 +616,15 @@ function setupTouchEvents() {
                 // Если перетаскивали, ищем цель для сброса
                 const touch = e.changedTouches[0];
                 
-                // Временно скрываем перетаскиваемый элемент
+                // Временно убираем карту из хит-теста
                 const originalTransform = draggedElement.style.transform;
+                const originalPointer = draggedElement.style.pointerEvents;
+                const originalVisibility = draggedElement.style.visibility;
+
                 draggedElement.style.transform = '';
-                draggedElement.style.opacity = '0';
-                
+                draggedElement.style.pointerEvents = 'none';   // << главное
+                draggedElement.style.visibility = 'hidden';    // на всякий случай
+
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                 console.log('Element below touch:', elementBelow);
                 
@@ -630,10 +637,11 @@ function setupTouchEvents() {
                     }
                     console.log('Found target:', target);
                 }
-                
-                // Восстанавливаем стили
+
+                // Восстанавливаем
                 draggedElement.style.transform = originalTransform;
-                draggedElement.style.opacity = '';
+                draggedElement.style.pointerEvents = originalPointer || '';
+                draggedElement.style.visibility = originalVisibility || '';
                 
                 if (target) {
                     const cards = getCardSequence(draggedElement);
