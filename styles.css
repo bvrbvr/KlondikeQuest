@@ -31,7 +31,7 @@
 
   /* Safe areas / header */
   --ui-header-h: 42px; /* Reduced for more game space */
-  --safe-bottom-pad: max(50px, env(safe-area-inset-bottom));
+  --safe-bottom-pad: calc(env(safe-area-inset-bottom) + 8px);
 }
 
 [data-theme="dark"] {
@@ -65,6 +65,7 @@ body {
   background: var(--bg-color);
   color: var(--text-color);
   min-height: 100dvh;
+  min-height: 100svh; /* iOS 16+ stable viewport height */
   overflow-x: hidden;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
@@ -77,23 +78,135 @@ body {
   min-height: 100dvh;
   padding: calc(4px + env(safe-area-inset-top))
            calc(4px + env(safe-area-inset-right))
-           calc(4px + var(--safe-bottom-pad))
+           var(--safe-bottom-pad)
            calc(4px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 6px;
   overflow-y: auto;
   scroll-padding-top: calc(var(--ui-header-h) + 4px);
-  scroll-padding-bottom: calc(140px + var(--safe-bottom-pad));
+  scroll-padding-bottom: var(--safe-bottom-pad);
   background: var(--bg-color);
+  position: relative;
+  z-index: 1;
 }
 
-.game-container::after {
-  content: "";
-  display: block;
-  height: calc(100px + var(--safe-bottom-pad));
-  flex: 0 0 auto;
+/* === Interactive Background === */
+.background-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
+
+.floating-card {
+  position: absolute;
+  width: 40px;
+  height: 56px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  opacity: 0.1;
+  animation: float 15s infinite linear;
+  transform-origin: center;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.floating-card::before {
+  content: "♠";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  color: var(--text-color);
+  opacity: 0.3;
+}
+
+.floating-card:nth-child(odd)::before {
+  content: "♥";
+  color: var(--red-suit);
+}
+
+.floating-card:nth-child(3n)::before {
+  content: "♦";
+  color: var(--red-suit);
+}
+
+.floating-card:nth-child(4n)::before {
+  content: "♣";
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.1;
+  }
+  90% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Разные скорости для карт */
+.floating-card:nth-child(1) { animation-duration: 20s; animation-delay: 0s; }
+.floating-card:nth-child(2) { animation-duration: 18s; animation-delay: 2s; }
+.floating-card:nth-child(3) { animation-duration: 22s; animation-delay: 4s; }
+.floating-card:nth-child(4) { animation-duration: 16s; animation-delay: 6s; }
+.floating-card:nth-child(5) { animation-duration: 24s; animation-delay: 8s; }
+.floating-card:nth-child(6) { animation-duration: 19s; animation-delay: 10s; }
+.floating-card:nth-child(7) { animation-duration: 21s; animation-delay: 12s; }
+.floating-card:nth-child(8) { animation-duration: 17s; animation-delay: 14s; }
+
+/* Интерактивность при наведении */
+.floating-card:hover {
+  opacity: 0.2;
+  transform: scale(1.1);
+}
+
+/* Эффект при победе */
+.game-won .floating-card {
+  animation: celebrate 2s ease-in-out infinite;
+}
+
+@keyframes celebrate {
+  0%, 100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) scale(1.1) rotate(5deg);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2) rotate(-5deg);
+  }
+  75% {
+    transform: translateY(-10px) scale(1.1) rotate(5deg);
+  }
+}
+
+@keyframes pulse-success {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.3;
+  }
+}
+
+/* Remove large spacer that caused extra white gap on iPhones */
+.game-container::after { content: none; }
 
 /* === Header === */
 .game-header {
@@ -129,6 +242,48 @@ body {
 .moves-value {
   font-size: var(--font-m);
   font-weight: 800;
+}
+
+/* Подсветка таймера когда игра не началась */
+.timer.not-started {
+  animation: pulse-timer 2s infinite;
+}
+
+.timer.not-started .timer-value {
+  color: var(--btn-primary-bg);
+  font-weight: 900;
+}
+
+.timer-hint {
+  font-size: 8px;
+  opacity: 0.7;
+  margin-top: 2px;
+  display: none;
+}
+
+.timer.not-started .timer-hint {
+  display: block;
+  animation: fade-in-out 2s infinite;
+}
+
+@keyframes pulse-timer {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes fade-in-out {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .game-controls {
@@ -170,7 +325,7 @@ body {
   flex-direction: column;
   gap: 8px;
   flex: 1;
-  padding-bottom: calc(50px + var(--safe-bottom-pad));
+  padding-bottom: var(--safe-bottom-pad);
 }
 
 /* — Foundation — */
@@ -242,7 +397,7 @@ body {
   width: 100%;
   max-width: clamp(230px, 85vw, 760px);
   margin-inline: auto;
-  padding-bottom: calc(50px + var(--safe-bottom-pad));
+  padding-bottom: var(--safe-bottom-pad);
 }
 .tableau-slot {
   background: var(--slot-bg);

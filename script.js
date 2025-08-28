@@ -66,7 +66,8 @@ function initGame() {
     setupEventListeners();
     applyTheme();
     applyDeck();
-    startTimer();
+    // Таймер не запускается автоматически - нужно сделать первый ход
+    // startTimer();
     // Проверка отсутствия ходов на старте (на случай тупика после раздачи)
     notifyNoMovesIfNeeded();
 }
@@ -115,6 +116,7 @@ function updateDisplay() {
     updateFoundation();
     updateStockWaste();
     updateInfo();
+    updateTimerState();
 }
 
 // Обновление tableau
@@ -201,6 +203,21 @@ function createCardElement(card, isTopCard) {
 function updateInfo() {
     elements.moves.textContent = gameState.moves;
     elements.timer.textContent = formatTime(gameState.timer);
+    
+    // Обновляем скорость анимации карт в зависимости от количества ходов
+    updateBackgroundSpeed();
+}
+
+// Обновление состояния таймера
+function updateTimerState() {
+    const timerElement = document.querySelector('.timer');
+    if (timerElement) {
+        if (!gameState.gameStarted) {
+            timerElement.classList.add('not-started');
+        } else {
+            timerElement.classList.remove('not-started');
+        }
+    }
 }
 
 // Форматирование времени
@@ -587,6 +604,16 @@ function moveCards(cards, source, target) {
 	updateDisplay();
 	// Увеличение счетчика ходов
 	gameState.moves++;
+	// Запуск таймера при первом ходе
+	if (!gameState.gameStarted) {
+		startTimer();
+	}
+	
+	// Эффект успешного хода на фоне
+	if (target.type === 'foundation') {
+		triggerBackgroundCelebration();
+	}
+	
 	// Проверка победы
 	checkWin();
 	// Проверка отсутствия ходов
@@ -655,6 +682,10 @@ function drawFromStock() {
 		card.faceUp = true;
 		gameState.waste.push(card);
 	}
+	// Запуск таймера при первом ходе
+	if (!gameState.gameStarted) {
+		startTimer();
+	}
 	updateDisplay();
 	// Проверка отсутствия ходов
 	notifyNoMovesIfNeeded();
@@ -712,11 +743,84 @@ function showWinModal() {
     elements.winTime.textContent = formatTime(gameState.timer);
     elements.winMoves.textContent = gameState.moves;
     elements.winModal.classList.remove('hidden');
+    
+    // Активируем праздничный эффект на фоне
+    document.body.classList.add('game-won');
+    
+    // Создаем дополнительные карты для праздника
+    createCelebrationCards();
 }
 
 // Скрытие модального окна победы
 function hideWinModal() {
     elements.winModal.classList.add('hidden');
+    
+    // Убираем праздничный эффект
+    document.body.classList.remove('game-won');
+    
+    // Удаляем праздничные карты
+    const celebrationCards = document.querySelectorAll('.celebration-card');
+    celebrationCards.forEach(card => card.remove());
+}
+
+// Создание праздничных карт при победе
+function createCelebrationCards() {
+    const background = document.querySelector('.background-animation');
+    if (!background) return;
+    
+    for (let i = 0; i < 10; i++) {
+        const card = document.createElement('div');
+        card.className = 'floating-card celebration-card';
+        card.style.cssText = `
+            left: ${Math.random() * 100}%;
+            animation: celebrate 3s ease-in-out infinite;
+            animation-delay: ${Math.random() * 2}s;
+            opacity: 0.3;
+        `;
+        background.appendChild(card);
+    }
+}
+
+// Триггер празднования на фоне при успешном ходе
+function triggerBackgroundCelebration() {
+    const cards = document.querySelectorAll('.floating-card:not(.celebration-card)');
+    cards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.animation = 'pulse-success 0.5s ease-in-out';
+            setTimeout(() => {
+                card.style.animation = '';
+            }, 500);
+        }, index * 50);
+    });
+}
+
+// Обновление темы фона
+function updateBackgroundTheme() {
+    const cards = document.querySelectorAll('.floating-card');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    cards.forEach(card => {
+        if (isDark) {
+            card.style.background = 'var(--card-bg)';
+            card.style.borderColor = 'var(--card-border)';
+        } else {
+            card.style.background = 'var(--card-bg)';
+            card.style.borderColor = 'var(--card-border)';
+        }
+    });
+}
+
+// Обновление скорости анимации фона в зависимости от ходов
+function updateBackgroundSpeed() {
+    const cards = document.querySelectorAll('.floating-card:not(.celebration-card)');
+    const baseSpeed = 15;
+    const speedMultiplier = Math.max(0.5, 1 - (gameState.moves / 100));
+    
+    cards.forEach((card, index) => {
+        const individualSpeed = baseSpeed + (index * 2);
+        const newSpeed = individualSpeed * speedMultiplier;
+        card.style.animationDuration = `${newSpeed}s`;
+    });
 }
 
 // Сохранение результата игры
@@ -766,7 +870,7 @@ function getApiBase() {
     // Если работаем локально (localhost или file://), используем локальный бэкенд
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
     if (isLocal) return 'http://localhost:3000/api';
-    return 'https://' + envHost + '/api';
+    return 'https://' + envHost + '/api/api/v1';
 }
 
 function showStatsPopup(stats) {
@@ -898,6 +1002,9 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', next);
     safeStorageSet('kq_theme', next);
     updateThemeToggleLabel();
+    
+    // Обновляем фон при смене темы
+    updateBackgroundTheme();
 }
 
 function toggleDeck() {
@@ -1026,6 +1133,7 @@ function notifyNoMovesIfNeeded() {
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     initGame();
+    initBackgroundAnimation();
     
     // Обработка изменения размера окна
     window.addEventListener('resize', () => {
@@ -1037,3 +1145,82 @@ document.addEventListener('DOMContentLoaded', () => {
         tg.onEvent('themeChanged', applyTheme);
     }
 });
+
+// Инициализация анимированного фона
+function initBackgroundAnimation() {
+    const background = document.querySelector('.background-animation');
+    if (!background) return;
+    
+    // Добавляем интерактивность при движении мыши
+    document.addEventListener('mousemove', (e) => {
+        const cards = document.querySelectorAll('.floating-card');
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        cards.forEach((card, index) => {
+            const rect = card.getBoundingClientRect();
+            const cardCenterX = rect.left + rect.width / 2;
+            const cardCenterY = rect.top + rect.height / 2;
+            
+            const distance = Math.sqrt(
+                Math.pow(mouseX - cardCenterX, 2) + 
+                Math.pow(mouseY - cardCenterY, 2)
+            );
+            
+            if (distance < 100) {
+                const angle = Math.atan2(mouseY - cardCenterY, mouseX - cardCenterX);
+                const force = (100 - distance) / 100;
+                card.style.transform += ` translate(${Math.cos(angle) * force * 5}px, ${Math.sin(angle) * force * 5}px)`;
+            }
+        });
+    });
+    
+    // Добавляем эффект при клике
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.game-container')) {
+            createRippleEffect(e.clientX, e.clientY);
+        }
+    });
+}
+
+// Создание эффекта волн при клике
+function createRippleEffect(x, y) {
+    const ripple = document.createElement('div');
+    ripple.style.cssText = `
+        position: fixed;
+        left: ${x - 25}px;
+        top: ${y - 25}px;
+        width: 50px;
+        height: 50px;
+        border: 2px solid var(--btn-primary-bg);
+        border-radius: 50%;
+        opacity: 0.6;
+        z-index: 0;
+        pointer-events: none;
+        animation: ripple 1s ease-out forwards;
+    `;
+    
+    document.body.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 1000);
+}
+
+// Добавляем CSS для эффекта волн
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = `
+    @keyframes ripple {
+        0% {
+            transform: scale(0);
+            opacity: 0.6;
+        }
+        100% {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(rippleStyle);
