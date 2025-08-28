@@ -1,6 +1,6 @@
 /* =========================================================
    Klondike — responsive for Telegram WebView (iOS/Android)
-   Ровные 4/7 колонок, учёт content safe area, корректные отступы сверху
+   Ровные 4/7 колонок, content safe area, отступ под телеграм-шапку
    ========================================================= */
 
 /* ============ Variables & Theme ============ */
@@ -27,6 +27,12 @@
   /* layout chrome */
   --ui-header-h: 48px;
 
+  /* верхняя плавающая панель Telegram (Close/…); при необходимости подкорректируй */
+  --tg-topbar-gap: 56px;
+
+  /* расстояние между нашей шапкой и foundation */
+  --header-gap: clamp(16px, 3vh, 28px);
+
   /* gaps & widths */
   --gap: clamp(6px, 1.8vw, 10px);
 
@@ -34,7 +40,7 @@
   --tableau-maxw: min( clamp(230px, 85vw, 760px),
                        calc(var(--vw) - (var(--csafe-left) + var(--csafe-right) + 16px)) );
 
-  /* точные ширины колонок (7 колонок в tableau, 4 в foundation) */
+  /* точные ширины колонок (7 в tableau, 4 в foundation) */
   --cols: 7;
   --colw: calc( (var(--tableau-maxw) - (var(--cols) - 1) * var(--gap)) / var(--cols) );
 
@@ -54,9 +60,6 @@
   /* стек карт (пропорциональный) */
   --stack-open:   calc(var(--card-h) * -0.36);
   --stack-closed: calc(var(--card-h) * -0.28);
-
-  /* расстояние между шапкой и foundation (регулируемый воздух) */
-  --header-gap: clamp(16px, 3vh, 28px);
 }
 
 [data-theme="dark"]{
@@ -90,13 +93,23 @@ body{
   display:flex; flex-direction:column; gap:8px;
 
   overflow-y:auto;
-  scroll-padding-top:calc(var(--ui-header-h) + var(--header-gap));
+  scroll-padding-top:calc(var(--ui-header-h) + var(--header-gap) + var(--tg-topbar-gap));
   scroll-padding-bottom:calc(var(--pad-bottom) + 120px);
   position:relative; z-index:1;
 }
 
-/* страховочный отбойник */
-.game-container::after{content:""; display:block; height:calc(var(--pad-bottom) + 120px); flex:0 0 auto;}
+/* верхний спейсер под телеграм-шапку: ПЕРЕД нашей .game-header */
+.game-container::before{
+  content:"";
+  display:block;
+  height: calc(var(--csafe-top) + var(--tg-topbar-gap));
+  flex:0 0 auto;
+}
+
+/* страховочный нижний отбойник */
+.game-container::after{
+  content:""; display:block; height:calc(var(--pad-bottom) + 120px); flex:0 0 auto;
+}
 
 /* ——— HEADER ——— */
 .game-header{
@@ -136,7 +149,7 @@ body{
   align-content:start;
   width:100%;
   max-width:var(--tableau-maxw);
-  margin: 0 auto 8px auto;            /* сверху отступ задаёт header-gap */
+  margin: 0 auto 8px auto;            /* сверху отступ задаёт header-gap/спейсер */
 }
 .foundation-slot{
   width:var(--card-max);
@@ -271,7 +284,7 @@ body{
   /* фикс-колонки уже гарантируют ширину — менять грид не нужно */
 }
 
-/* ============ Extras ============ */
+/* ============ Extras (как было) ============ */
 .nickname-input-container{margin:20px 0}
 .nickname-input{
   width:100%;padding:12px;border:2px solid var(--slot-border);border-radius:8px;
