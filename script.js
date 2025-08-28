@@ -572,7 +572,9 @@ function setupTouchEvents() {
     
     document.addEventListener('touchstart', (e) => {
       const card = e.target.closest('.card');
+      console.log('Touch start on:', e.target, 'card:', card);
       if (card && card.draggable) {
+        console.log('Starting drag for card:', card.dataset.suit, card.dataset.value);
         document.documentElement.classList.add('dragging');
         document.body.classList.add('dragging');
         document.querySelector('.game-container')?.classList.add('dragging');
@@ -593,6 +595,8 @@ function setupTouchEvents() {
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
             
+            console.log('Touch move:', { deltaX, deltaY, isDragging });
+            
             // Если движение больше порога, начинаем перетаскивание
             if (!isDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
                 isDragging = true;
@@ -606,14 +610,18 @@ function setupTouchEvents() {
             
             if (isDragging) {
                 draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                console.log('Moving card:', deltaX, deltaY);
             }
         }
     }, { passive: false });
     
     document.addEventListener('touchend', (e) => {
+        console.log('Touch end, draggedElement:', draggedElement, 'isDragging:', isDragging);
         if (draggedElement) {
             const touchEndTime = Date.now();
             const touchDuration = touchEndTime - touchStartTime;
+            
+            console.log('Touch duration:', touchDuration);
             
             if (isDragging) {
                 // Если перетаскивали, ищем цель для сброса
@@ -642,6 +650,8 @@ function setupTouchEvents() {
                     }
                     console.log('Found target:', target);
                 }
+                
+                console.log('Target location:', target ? getSlotLocation(target) : null);
 
                 // Восстанавливаем
                 draggedElement.style.transform = originalTransform;
