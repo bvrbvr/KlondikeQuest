@@ -1,41 +1,46 @@
-/* =========================
-   Klondike — responsive for Telegram WebView (iPhone/Android)
-   ========================= */
+/* =========================================================
+   Klondike — responsive for Telegram WebView (iOS/Android)
+   ========================================================= */
 
-/* ===== Variables & Theme ===== */
+/* ============ Variables & Theme ============ */
 :root{
-  /* theme */
+  /* colors */
   --bg-color:#ffffff; --text-color:#000000;
   --card-bg:#ffffff;  --card-border:#cccccc;
   --slot-bg:#f0f0f0;  --slot-border:#dddddd;
   --btn-primary-bg:#007bff; --btn-primary-color:#ffffff;
   --btn-secondary-bg:#6c757d; --btn-secondary-color:#ffffff;
-  --modal-bg:rgba(0,0,0,0.5); --modal-content-bg:#ffffff;
+  --modal-bg:rgba(0,0,0,.5); --modal-content-bg:#ffffff;
   --red-suit:#dc3545; --black-suit:#000000;
 
-  /* real viewport from Telegram (fallbacks to CSS env/dvh) */
+  /* viewport from Telegram (fallbacks) */
   --vw: var(--tg-vw, 100vw);
   --vh: var(--tg-vh, 100dvh);
 
-  /* content safe area (главный источник правды в Telegram) */
+  /* content safe area (truth in Telegram WebView) */
   --csafe-top:    var(--tg-csafe-top,    env(safe-area-inset-top, 0px));
   --csafe-right:  var(--tg-csafe-right,  env(safe-area-inset-right, 0px));
   --csafe-bottom: var(--tg-csafe-bottom, env(safe-area-inset-bottom, 0px));
   --csafe-left:   var(--tg-csafe-left,   env(safe-area-inset-left, 0px));
 
   /* sizes */
-  --card-max: clamp(42px, 12vw, 78px);
-  --card-h: calc(var(--card-max) * 1.4);
+  /* карта подгоняется от ширины экрана: берём минимум из 12vw и vw/8, но не меньше 40 и не больше 78 */
+  --card-max: clamp(40px, min(12vw, calc(var(--vw) / 8)), 78px);
+  --card-h: calc(var(--card-max) * 1.4); /* aspect 2.5:3.5 ≈ 1:1.4 */
+
   --font-s: clamp(8px, 2.2vw, 12px);
   --font-m: clamp(10px, 2.6vw, 15px);
 
-  /* stack depth (proportional, читаемо на любых плотностях) */
-  --stack-open:  calc(var(--card-h) * -0.38);
-  --stack-closed:calc(var(--card-h) * -0.30);
-
-  /* chrome */
+  /* доступная высота минус шапка/сейф-арии */
   --ui-header-h: 48px;
-  --pad-bottom:  calc(var(--csafe-bottom) + 24px); /* реальный отбойник снизу */
+  --avail-h: calc(var(--vh) - var(--csafe-top) - var(--csafe-bottom) - var(--ui-header-h));
+
+  /* отбойник снизу: content safe area + запас */
+  --pad-bottom: calc(var(--csafe-bottom) + 28px);
+
+  /* стек карт (пропорциональный) */
+  --stack-open:   calc(var(--card-h) * -0.38);
+  --stack-closed: calc(var(--card-h) * -0.30);
 }
 
 [data-theme="dark"]{
@@ -46,20 +51,21 @@
   --red-suit:#ff6b6b; --black-suit:#ffffff;
 }
 
-/* ===== Reset / base ===== */
+/* ============ Reset / base ============ */
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   color:var(--text-color);
-  background: linear-gradient(135deg,#ffffff 0%,#e3f2fd 30%,#1976d2 70%,#0d47a1 100%);
-  min-height:var(--vh); /* стабильная высота */
-  overflow-x:hidden; overscroll-behavior-y:none;
+  background:linear-gradient(135deg,#ffffff 0%,#e3f2fd 30%,#1976d2 70%,#0d47a1 100%);
+  min-height:var(--vh);
+  overflow-x:hidden;
+  overscroll-behavior-y:none;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
 }
 
-/* ===== Layout ===== */
+/* ============ Layout ============ */
 .game-container{
   width:100%;
   min-height:var(--vh);
@@ -69,18 +75,16 @@ body{
            calc(6px + var(--csafe-left));
   display:flex; flex-direction:column; gap:8px;
 
-  /* собственный скролл и большой «отбойник» снизу */
+  /* собственный скролл + запас для автопрокруток */
   overflow-y:auto;
   scroll-padding-top:calc(var(--ui-header-h) + 8px);
-  scroll-padding-bottom:calc(var(--pad-bottom) + 80px);
+  scroll-padding-bottom:calc(var(--pad-bottom) + 100px);
   position:relative; z-index:1;
 }
 
-/* страховочный отбойник на случай, если паддинги урежет webview */
+/* страховочный отбойник — на случай, если webview срежет паддинги */
 .game-container::after{
-  content:""; display:block;
-  height:calc(var(--pad-bottom) + 80px);
-  flex:0 0 auto;
+  content:""; display:block; height:calc(var(--pad-bottom) + 100px); flex:0 0 auto;
 }
 
 .game-header{
@@ -103,7 +107,7 @@ body{
 .game-controls{display:flex;gap:6px;flex-wrap:wrap}
 .btn{
   padding:7px 12px;border:0;border-radius:8px;
-  font-size:12px;font-weight:600;min-height:40px;min-width:72px;
+  font-size:12px;font-weight:600;min-height:36px;min-width:72px;
   cursor:pointer;transition:opacity .2s,transform .2s;
   touch-action:manipulation;
 }
@@ -113,334 +117,202 @@ body{
 .btn:hover{opacity:.9;transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
 
-/* ===== Board ===== */
-.game-board{display:flex;flex-direction:column;gap:8px;flex:1;padding-bottom:var(--pad-bottom)}
+/* ============ Board ============ */
+.game-board{
+  display:flex; flex-direction:column; gap:8px; flex:1;
+  padding-bottom:var(--pad-bottom);
+}
 
 /* Foundation */
 .foundation-area{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:8px;margin-inline:auto;margin-bottom:6px;
-  width:100%;max-width:clamp(150px,48vw,380px)
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px; margin-inline:auto; margin-bottom:6px;
+  width:100%; max-width:clamp(150px,48vw,380px);
 }
 .foundation-slot{
-  aspect-ratio:2.5/3.5;min-height:58px;max-width:var(--card-max);
-  background:var(--slot-bg);border:2px dashed var(--slot-border);
-  border-radius:10px;display:flex;align-items:center;justify-content:center;
-  transition:border-color .2s
+  aspect-ratio:2.5/3.5; min-height:58px; max-width:var(--card-max);
+  background:var(--slot-bg); border:2px dashed var(--slot-border);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  transition:border-color .2s;
 }
 .foundation-slot:hover{border-color:var(--btn-primary-bg)}
 
 /* Stock / Waste */
 .stock-waste-area{
-  display:flex;gap:8px;justify-content:center;
-  width:100%;max-width:clamp(130px,45vw,210px);
-  margin-inline:auto
+  display:flex; gap:8px; justify-content:center;
+  width:100%; max-width:clamp(130px,45vw,210px);
+  margin-inline:auto;
 }
-.stock-container,.waste-container{flex:1;max-width:var(--card-max)}
+.stock-container,.waste-container{flex:1; max-width:var(--card-max)}
 .stock,.waste{
-  aspect-ratio:2.5/3.5;min-height:58px;max-width:var(--card-max);
-  background:var(--slot-bg);border:2px solid var(--slot-border);
-  border-radius:10px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;position:relative;transition:border-color .2s
+  aspect-ratio:2.5/3.5; min-height:58px; max-width:var(--card-max);
+  background:var(--slot-bg); border:2px solid var(--slot-border);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; transition:border-color .2s;
 }
 .stock:hover,.waste:hover{border-color:var(--btn-primary-bg)}
 
 /* Tableau */
 .tableau-area{
-  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
-  gap:8px;flex:1;width:100%;max-width:clamp(230px,85vw,760px);
-  margin-inline:auto;padding-bottom:var(--pad-bottom)
+  display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px; flex:1; width:100%;
+  max-width:clamp(230px,85vw,760px);
+  margin-inline:auto;
+  padding-bottom:var(--pad-bottom);
 }
 .tableau-slot{
-  background:var(--slot-bg);border:2px dashed var(--slot-border);
-  border-radius:10px;min-height:clamp(88px, calc(var(--vh)*0.26), 340px);
-  padding:5px;position:relative;transition:border-color .2s
+  background:var(--slot-bg); border:2px dashed var(--slot-border);
+  border-radius:10px;
+
+  /* min-height зависит от доступной высоты: 25–30% avail */
+  min-height: clamp(88px, calc(max(var(--avail-h), 320px) * 0.28), 360px);
+
+  padding:5px; position:relative; transition:border-color .2s;
 }
 .tableau-slot:hover{border-color:var(--btn-primary-bg)}
 
-/* ===== Cards ===== */
+/* ============ Cards ============ */
 .card{
-  width:100%;max-width:var(--card-max);aspect-ratio:2.5/3.5;
-  background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;
-  display:flex;flex-direction:column;justify-content:space-between;
-  padding:3px;font-size:var(--font-s);font-weight:800;
-  cursor:grab;position:relative;user-select:none;
+  width:100%; max-width:var(--card-max); aspect-ratio:2.5/3.5;
+  background:var(--card-bg); border:1px solid var(--card-border); border-radius:8px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:3px; font-size:var(--font-s); font-weight:800;
+  cursor:grab; position:relative; user-select:none;
   box-shadow:0 2px 4px rgba(0,0,0,.08);
-  transition:transform .2s,opacity .2s;touch-action:none
+  transition:transform .2s, opacity .2s; touch-action:none;
 }
 .card:active{cursor:grabbing}
-.card.face-down{background:linear-gradient(45deg,#2c3e50,#34495e);color:transparent}
+.card.face-down{background:linear-gradient(45deg,#2c3e50,#34495e); color:transparent}
 .card.face-down::before{
-  content:"♠";position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%);font-size:calc(var(--font-m) + 6px);
-  color:var(--text-color);opacity:.85
+  content:"♠"; position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%); font-size:calc(var(--font-m) + 6px);
+  color:var(--text-color); opacity:.85;
 }
 .card.red{color:var(--red-suit)} .card.black{color:var(--black-suit)}
 .card-top,.card-bottom{display:flex;justify-content:space-between;align-items:flex-start}
 .card-bottom{transform:rotate(180deg)}
-.card-value{font-size:calc(var(--font-s) + 2px);font-weight:900}
+.card-value{font-size:calc(var(--font-s) + 2px); font-weight:900}
 .card-suit{font-size:calc(var(--font-s) + 3px)}
 
-.tableau-slot .card{margin-bottom:var(--stack-open);z-index:1}
+.tableau-slot .card{margin-bottom:var(--stack-open); z-index:1}
 .tableau-slot .card.face-down{margin-bottom:var(--stack-closed)}
 .tableau-slot .card:last-child{margin-bottom:0}
 
-/* ===== Drag & Drop ===== */
-.card.dragging{opacity:.9;transform:scale(1.03) rotate(1.5deg);z-index:1000}
+/* ============ Drag & Drop ============ */
+.card.dragging{opacity:.9; transform:scale(1.03) rotate(1.5deg); z-index:1000}
 .foundation-slot.drag-over,.tableau-slot.drag-over,.card.drag-over{
-  border-color:var(--btn-primary-bg);background-color:rgba(0,123,255,.08)
+  border-color:var(--btn-primary-bg); background-color:rgba(0,123,255,.08);
 }
 
-/* ===== Modal & Extras ===== */
-.modal{position:fixed;inset:0;background:var(--modal-bg);
-  display:flex;align-items:center;justify-content:center;z-index:1000;
-  padding-top:var(--csafe-top)}
+/* ============ Modal & misc ============ */
+.modal{
+  position:fixed; inset:0; background:var(--modal-bg);
+  display:flex; align-items:center; justify-content:center; z-index:1000;
+  padding-top:var(--csafe-top);
+}
 .modal.hidden{display:none}
 .modal-content{
-  background:var(--modal-content-bg);padding:20px;border-radius:12px;text-align:center;
-  max-width:min(90%,480px);max-height:calc(80dvh - var(--csafe-top));overflow:auto
+  background:var(--modal-content-bg); padding:20px; border-radius:12px; text-align:center;
+  max-width:min(90%,480px); max-height:calc(80dvh - var(--csafe-top)); overflow:auto;
 }
 
-/* background animation (оставил, но облегчён) */
-.background-animation{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.floating-card{position:absolute;width:40px;height:56px;background:linear-gradient(45deg,#2196f3,#1976d2);
-  border:1px solid #1565c0;border-radius:6px;opacity:.22;animation:float 18s infinite linear}
-.floating-card::before{content:"♠";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;opacity:.8}
+/* ===== background animation (облегчён) ===== */
+.background-animation{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+.floating-card{
+  position:absolute; width:40px; height:56px;
+  background:linear-gradient(45deg,#2196f3,#1976d2);
+  border:1px solid #1565c0; border-radius:6px; opacity:.22;
+  animation:float 18s infinite linear;
+}
+.floating-card::before{
+  content:"♠"; position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center; color:#fff; opacity:.8;
+}
 @keyframes float{0%{transform:translateY(100vh) rotate(0)}100%{transform:translateY(-80px) rotate(360deg)}}
 
-/* ===== HiDPI ===== */
+/* ============ HiDPI ============ */
 .card,.slot{will-change:transform}
 @media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){.card{border-width:.5px}}
 
-/* ===== Height-based compression (если вертикали мало) ===== */
+/* ============ Height-based compression (когда мало вертикали) ============ */
 @media (max-height:830px){
-  :root{ --stack-open:calc(var(--card-h)*-0.35); --stack-closed:calc(var(--card-h)*-0.28); }
-  .tableau-slot{min-height:clamp(84px, calc(var(--vh)*0.24), 300px)}
+  :root{
+    --stack-open:calc(var(--card-h)*-0.35);
+    --stack-closed:calc(var(--card-h)*-0.28);
+  }
+  .tableau-slot{min-height: clamp(84px, calc(max(var(--avail-h), 300px) * 0.26), 320px)}
 }
 @media (max-height:760px){
-  :root{ --stack-open:calc(var(--card-h)*-0.32); --stack-closed:calc(var(--card-h)*-0.26); }
-  .tableau-slot{min-height:clamp(80px, calc(var(--vh)*0.22), 280px)}
+  :root{
+    --stack-open:calc(var(--card-h)*-0.32);
+    --stack-closed:calc(var(--card-h)*-0.26);
+  }
+  .tableau-slot{min-height: clamp(80px, calc(max(var(--avail-h), 260px) * 0.24), 300px)}
 }
 
-/* ===== Simple width breakpoints (аккуратно, без «моделей») ===== */
+/* ============ Width breakpoints (без «моделей») ============ */
 @media (max-width:768px){
-  .game-header{flex-wrap:wrap;align-items:flex-start}
+  .game-header{flex-wrap:wrap; align-items:flex-start}
   .foundation-area{grid-template-columns:repeat(2,1fr)}
   .tableau-area{grid-template-columns:repeat(4,1fr)}
   .tableau-slot:nth-child(n+5){grid-column:span 2}
 }
 
-/* ===== Animations for timer/hints ===== */
+/* ============ Animations for timer/hints ============ */
 @keyframes pulse-timer{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(1.05)}}
 @keyframes fade-in-out{0%,100%{opacity:.7}50%{opacity:1}}
 
-/* ===== Nickname Input ===== */
-.nickname-input-container {
-  margin: 20px 0;
+/* ============ Nickname input / Stats / Leaderboard ============ */
+.nickname-input-container{margin:20px 0}
+.nickname-input{
+  width:100%;padding:12px;border:2px solid var(--slot-border);border-radius:8px;
+  font-size:16px;background:var(--card-bg);color:var(--text-color);margin-bottom:8px
+}
+.nickname-input:focus{outline:none;border-color:var(--btn-primary-bg)}
+.nickname-hint{font-size:12px;color:var(--text-color);opacity:.7;text-align:center}
+
+.leaderboard{margin:20px 0;max-height:300px;overflow-y:auto}
+.leaderboard-list{display:flex;flex-direction:column;gap:8px}
+.leaderboard-item{
+  display:flex;align-items:center;padding:12px;background:var(--slot-bg);
+  border-radius:8px;border:1px solid var(--slot-border);transition:.2s
+}
+.leaderboard-item.rank-1{background:linear-gradient(45deg,#ffd700,#ffed4e);border-color:#ffc107;color:#333;font-weight:700}
+.leaderboard-item.rank-2{background:linear-gradient(45deg,#c0c0c0,#e0e0e0);border-color:#9e9e9e;color:#333;font-weight:700}
+.leaderboard-item.rank-3{background:linear-gradient(45deg,#cd7f32,#daa520);border-color:#b8860b;color:#fff;font-weight:700}
+.leaderboard-rank{font-size:18px;font-weight:700;margin-right:12px;min-width:30px}
+.leaderboard-rank.rank-1::before{content:"🥇 "}
+.leaderboard-rank.rank-2::before{content:"🥈 "}
+.leaderboard-rank.rank-3::before{content:"🥉 "}
+.leaderboard-info{flex:1;display:flex;flex-direction:column}
+.leaderboard-nickname{font-weight:700;font-size:14px}
+.leaderboard-stats{font-size:12px;opacity:.8;margin-top:2px}
+.stats-footer{margin-top:16px;padding:12px;background:var(--slot-bg);border-radius:8px;text-align:center;font-size:14px}
+.stats-footer p{margin:0;font-weight:600}
+
+/* ============ Win Stats ============ */
+.win-stats{margin:14px 0;padding:12px;background:var(--slot-bg);border-radius:10px}
+.win-stats p{margin:5px 0;font-weight:600}
+
+/* ============ Card animations / Hints ============ */
+@keyframes cardFlip{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
+.card.flipping{animation:cardFlip .3s ease-in-out}
+@keyframes cardMove{from{transform:scale(1)}50%{transform:scale(1.05)}to{transform:scale(1)}}
+.card.moving{animation:cardMove .2s ease-in-out}
+
+.hint-highlight{
+  animation:hint-pulse 1s ease-in-out infinite;
+  border-color:#ffd700 !important; background-color:rgba(255,215,0,.1) !important;
+  box-shadow:0 0 10px rgba(255,215,0,.5);
+}
+@keyframes hint-pulse{0%,100%{box-shadow:0 0 10px rgba(255,215,0,.5)}50%{box-shadow:0 0 20px rgba(255,215,0,.8)}}
+@keyframes hint-fade-in-out{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
 }
 
-.nickname-input {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid var(--slot-border);
-  border-radius: 8px;
-  font-size: 16px;
-  background: var(--card-bg);
-  color: var(--text-color);
-  margin-bottom: 8px;
-}
-
-.nickname-input:focus {
-  outline: none;
-  border-color: var(--btn-primary-bg);
-}
-
-.nickname-hint {
-  font-size: 12px;
-  color: var(--text-color);
-  opacity: 0.7;
-  text-align: center;
-}
-
-/* ===== Leaderboard ===== */
-.leaderboard {
-  margin: 20px 0;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.leaderboard-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.leaderboard-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  background: var(--slot-bg);
-  border-radius: 8px;
-  border: 1px solid var(--slot-border);
-  transition: all 0.2s;
-}
-
-.leaderboard-item.rank-1 {
-  background: linear-gradient(45deg, #ffd700, #ffed4e);
-  border-color: #ffc107;
-  color: #333;
-  font-weight: bold;
-}
-
-.leaderboard-item.rank-2 {
-  background: linear-gradient(45deg, #c0c0c0, #e0e0e0);
-  border-color: #9e9e9e;
-  color: #333;
-  font-weight: bold;
-}
-
-.leaderboard-item.rank-3 {
-  background: linear-gradient(45deg, #cd7f32, #daa520);
-  border-color: #b8860b;
-  color: #fff;
-  font-weight: bold;
-}
-
-.leaderboard-rank {
-  font-size: 18px;
-  font-weight: bold;
-  margin-right: 12px;
-  min-width: 30px;
-}
-
-.leaderboard-rank.rank-1::before { content: "🥇 "; }
-.leaderboard-rank.rank-2::before { content: "🥈 "; }
-.leaderboard-rank.rank-3::before { content: "🥉 "; }
-
-.leaderboard-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.leaderboard-nickname {
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.leaderboard-stats {
-  font-size: 12px;
-  opacity: 0.8;
-  margin-top: 2px;
-}
-
-.stats-footer {
-  margin-top: 16px;
-  padding: 12px;
-  background: var(--slot-bg);
-  border-radius: 8px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.stats-footer p {
-  margin: 0;
-  font-weight: 600;
-}
-
-/* ===== Win Stats ===== */
-.win-stats {
-  margin: 14px 0;
-  padding: 12px;
-  background: var(--slot-bg);
-  border-radius: 10px;
-}
-
-.win-stats p {
-  margin: 5px 0;
-  font-weight: 600;
-}
-
-/* ===== Card Animations ===== */
-@keyframes cardFlip {
-  from { transform: rotateY(0); }
-  to { transform: rotateY(180deg); }
-}
-
-.card.flipping {
-  animation: cardFlip 0.3s ease-in-out;
-}
-
-@keyframes cardMove {
-  from { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  to { transform: scale(1); }
-}
-
-.card.moving {
-  animation: cardMove 0.2s ease-in-out;
-}
-
-/* ===== Hint Highlighting ===== */
-.hint-highlight {
-  animation: hint-pulse 1s ease-in-out infinite;
-  border-color: #ffd700 !important;
-  background-color: rgba(255, 215, 0, 0.1) !important;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-}
-
-@keyframes hint-pulse {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-  }
-}
-
-@keyframes hint-fade-in-out {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  20% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-}
-
-/* ===== Deck Variants ===== */
-[data-deck="red"] .card.face-down {
-  background:
-    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.3) 0 12%, transparent 13%),
-    radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.3) 0 12%, transparent 13%),
-    repeating-linear-gradient(45deg, #b22222 0 10px, #ff4040 10px 20px);
-}
-
-[data-deck="red"] .card.face-down::before {
-  content: "♦";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: calc(var(--font-m) + 8px);
-  color: #ffffff;
-  opacity: 0.95;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-[data-deck="blue"] .card.face-down {
-  background: linear-gradient(45deg, #2c3e50, #34495e);
-}
-
-[data-deck="blue"] .card.face-down::before {
-  content: "♠";
-}
+/* ============ Deck variants (back design) ============ */
+[data-deck="blue"] .card.face-down{background:linear-gradient(45deg,#2c3e50,#1b4d8a)}
+[data-deck="red"]  .card.face-down{background:linear-gradient(45deg,#8a1b1b,#c0392b)}
