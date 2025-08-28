@@ -623,16 +623,33 @@ function setupTouchEvents() {
             if (isDragging) {
                 // Если перетаскивали, ищем цель для сброса
                 const touch = e.changedTouches[0];
+                
+                // Временно скрываем перетаскиваемый элемент для правильного определения цели
+                const originalTransform = draggedElement.style.transform;
+                const originalOpacity = draggedElement.style.opacity;
+                draggedElement.style.transform = '';
+                draggedElement.style.opacity = '0';
+                
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                 const target = elementBelow ? elementBelow.closest('.foundation-slot, .tableau-slot, .waste') : null;
+                
+                // Восстанавливаем стили
+                draggedElement.style.transform = originalTransform;
+                draggedElement.style.opacity = originalOpacity;
                 
                 if (target) {
                     const cards = getCardSequence(draggedElement);
                     const source = getCardLocation(draggedElement);
                     const targetLocation = getSlotLocation(target);
                     
+                    console.log('Drop target:', target, 'targetLocation:', targetLocation);
+                    console.log('Cards to move:', cards, 'source:', source);
+                    
                     if (targetLocation && canMoveCards(cards, targetLocation)) {
+                        console.log('Moving cards...');
                         moveCards(cards, source, targetLocation);
+                    } else {
+                        console.log('Cannot move cards. targetLocation:', targetLocation, 'canMove:', targetLocation ? canMoveCards(cards, targetLocation) : false);
                     }
                 }
             } else if (touchDuration < 200) {
@@ -664,10 +681,12 @@ function getCardSequence(cardElement) {
 	// Определяем контейнер
 	const container = cardElement.closest('.tableau-slot, .waste, .foundation-slot');
 	if (!container) {
+		console.log('No container found, using card data:', cardElement.dataset.suit, cardElement.dataset.value);
 		return [{ suit: cardElement.dataset.suit, value: cardElement.dataset.value }];
 	}
 	// Из waste и foundation тянется только одна карта (верхняя)
 	if (container.classList.contains('waste') || container.classList.contains('foundation-slot')) {
+		console.log('From waste/foundation, using card data:', cardElement.dataset.suit, cardElement.dataset.value);
 		return [{ suit: cardElement.dataset.suit, value: cardElement.dataset.value }];
 	}
 	// Tableau: берём индекс столбца и индекс карты
@@ -680,6 +699,7 @@ function getCardSequence(cardElement) {
 	for (let i = cardIndex; i < tableau.length; i++) {
 		sequence.push({ suit: tableau[i].suit, value: tableau[i].value });
 	}
+	console.log('Tableau sequence:', sequence, 'slotIndex:', slotIndex, 'cardIndex:', cardIndex);
 	return sequence.length ? sequence : [{ suit: cardElement.dataset.suit, value: cardElement.dataset.value }];
 }
 
@@ -719,6 +739,8 @@ function getCardLocation(cardElement) {
 function getSlotLocation(slotElement) {
 	if (!slotElement) return null;
 	
+	console.log('getSlotLocation called with:', slotElement, 'classes:', slotElement.classList);
+	
 	// Если дропнули прямо на карту, берём индекс из карты и определяем тип по родителю
 	if (slotElement.classList && slotElement.classList.contains('card')) {
 		const parent = slotElement.closest('.tableau-slot, .foundation-slot, .waste');
@@ -743,9 +765,11 @@ function getSlotLocation(slotElement) {
 	if (slotElement.classList.contains('foundation-slot')) {
 		const slotData = slotElement.dataset.slot;
 		if (slotData && slotData.startsWith('foundation-')) {
+			const index = parseInt(slotData.split('-')[1]);
+			console.log('Foundation slot found:', index);
 			return { 
 				type: 'foundation', 
-				index: parseInt(slotData.split('-')[1]) 
+				index: index
 			};
 		}
 	}
@@ -753,13 +777,16 @@ function getSlotLocation(slotElement) {
 	if (slotElement.classList.contains('tableau-slot')) {
 		const slotData = slotElement.dataset.slot;
 		if (slotData && slotData.startsWith('tableau-')) {
+			const index = parseInt(slotData.split('-')[1]);
+			console.log('Tableau slot found:', index);
 			return { 
 				type: 'tableau', 
-				index: parseInt(slotData.split('-')[1]) 
+				index: index
 			};
 		}
 	}
 	
+	console.log('No valid slot location found');
 	return null;
 }
 
@@ -814,6 +841,8 @@ function canMoveToTableau(card, tableauIndex) {
     console.log('Tableau check:', {
         card: card,
         topCard: topCard,
+        cardValue: getCardValue(card.value),
+        topCardValue: getCardValue(topCard.value),
         oppositeColor: oppositeColor,
         correctValue: correctValue,
         canMove: canMove
