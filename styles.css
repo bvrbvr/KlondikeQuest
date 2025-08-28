@@ -1,6 +1,6 @@
 /* =========================================================
    Klondike — responsive for Telegram WebView (iOS/Android)
-   Версия: iPhone 16 tuned — колонки вписываются ровно в 7 × width
+   Версия: фикс колонок (foundation 4шт, tableau 7шт — ровные линии)
    ========================================================= */
 
 /* ============ Variables & Theme ============ */
@@ -18,7 +18,7 @@
   --vw: var(--tg-vw, 100vw);
   --vh: var(--tg-vh, 100dvh);
 
-  /* content safe area (истина в Telegram WebView) */
+  /* content safe area (Telegram WebView truth) */
   --csafe-top:    var(--tg-csafe-top,    env(safe-area-inset-top, 0px));
   --csafe-right:  var(--tg-csafe-right,  env(safe-area-inset-right, 0px));
   --csafe-bottom: var(--tg-csafe-bottom, env(safe-area-inset-bottom, 0px));
@@ -27,15 +27,20 @@
   /* layout chrome */
   --ui-header-h: 48px;
 
-  /* === ширина колонок и карты ===
-     Сначала ограничиваем общую ширину зоны tableau,
-     затем вычисляем точную ширину одного столбца и карты — так 7 колонок всегда влезают. */
-  --gap: 8px;
-  --tableau-maxw: min( clamp(230px, 85vw, 760px), calc(var(--vw) - (var(--csafe-left) + var(--csafe-right) + 16px)) );
+  /* gaps & widths */
+  --gap: clamp(6px, 1.8vw, 10px);
+
+  /* доступная ширина под «стол» = мин из 85vw и ширины экрана минус safe-areas */
+  --tableau-maxw: min( clamp(230px, 85vw, 760px),
+                       calc(var(--vw) - (var(--csafe-left) + var(--csafe-right) + 16px)) );
+
+  /* точные ширины колонок (7 колонок в tableau, 4 в foundation) */
   --cols: 7;
   --colw: calc( (var(--tableau-maxw) - (var(--cols) - 1) * var(--gap)) / var(--cols) );
+
+  /* карта = ширина столбца (строго), но не больше 78px и не меньше 40px */
   --card-max: clamp(40px, var(--colw), 78px);
-  --card-h: calc(var(--card-max) * 1.4); /* aspect 2.5:3.5 ≈ 1:1.4 */
+  --card-h: calc(var(--card-max) * 1.4); /* аспект 2.5:3.5 ≈ 1:1.4 */
 
   --font-s: clamp(8px, 2.2vw, 12px);
   --font-m: clamp(10px, 2.6vw, 15px);
@@ -43,8 +48,8 @@
   /* реальная доступная высота под стол */
   --avail-h: calc(var(--vh) - var(--csafe-top) - var(--csafe-bottom) - var(--ui-header-h));
 
-  /* отбойник снизу: content safe area + запас (усиленный для iPhone 16 / телеграм-вебвью) */
-  --pad-bottom: calc(var(--csafe-bottom) + 44px);
+  /* нижний «отбойник»: content safe area + запас (усилен для Telegram WebView) */
+  --pad-bottom: calc(var(--csafe-bottom) + 48px);
 
   /* стек карт (пропорциональный) */
   --stack-open:   calc(var(--card-h) * -0.36);
@@ -67,10 +72,8 @@ body{
   color:var(--text-color);
   background:linear-gradient(135deg,#ffffff 0%,#e3f2fd 30%,#1976d2 70%,#0d47a1 100%);
   min-height:var(--vh);
-  overflow-x:hidden;
-  overscroll-behavior-y:none;
-  -webkit-tap-highlight-color:transparent;
-  touch-action:manipulation;
+  overflow-x:hidden; overscroll-behavior-y:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
 }
 
 /* ============ Layout ============ */
@@ -85,96 +88,91 @@ body{
 
   overflow-y:auto;
   scroll-padding-top:calc(var(--ui-header-h) + 8px);
-  scroll-padding-bottom:calc(var(--pad-bottom) + 120px); /* большой запас для автопрокрутки */
+  scroll-padding-bottom:calc(var(--pad-bottom) + 120px);
   position:relative; z-index:1;
 }
 
-/* страховочный отбойник — если webview срежет паддинги */
-.game-container::after{
-  content:""; display:block; height:calc(var(--pad-bottom) + 120px); flex:0 0 auto;
-}
+/* страховочный отбойник на случай, если webview срежет паддинги */
+.game-container::after{content:""; display:block; height:calc(var(--pad-bottom) + 120px); flex:0 0 auto;}
 
 .game-header{
   position:sticky; top:var(--csafe-top); z-index:5;
-  display:flex; align-items:center; justify-content:space-between;
-  gap:8px;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding:8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
-  min-height:var(--ui-header-h);
-  background:var(--bg-color);
+  min-height:var(--ui-header-h); background:var(--bg-color);
 }
 .game-info{display:flex;gap:10px;font-size:10px}
 .timer,.moves{display:flex;flex-direction:column;align-items:flex-start}
 .timer-label,.moves-label{font-weight:600;opacity:.9}
 .timer-value,.moves-value{font-size:var(--font-m);font-weight:800}
-.timer.not-started{animation:pulse-timer 2s infinite}
-.timer.not-started .timer-value{color:var(--btn-primary-bg);font-weight:900}
-.timer-hint{font-size:8px;opacity:.7;margin-top:2px;display:none}
-.timer.not-started .timer-hint{display:block;animation:fade-in-out 2s infinite}
 
 .game-controls{display:flex;gap:6px;flex-wrap:wrap}
 .btn{
   padding:7px 12px;border:0;border-radius:8px;
   font-size:12px;font-weight:600;min-height:36px;min-width:72px;
-  cursor:pointer;transition:opacity .2s,transform .2s;
-  touch-action:manipulation;
+  cursor:pointer;transition:opacity .2s,transform .2s; touch-action:manipulation;
 }
 .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-color)}
 .btn-secondary{background:var(--btn-secondary-bg);color:var(--btn-secondary-color)}
-.btn-hint{background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;font-weight:700}
-.btn:hover{opacity:.9;transform:translateY(-1px)}
-.btn:active{transform:translateY(0)}
+.btn:hover{opacity:.9;transform:translateY(-1px)} .btn:active{transform:translateY(0)}
 
 /* ============ Board ============ */
-.game-board{
-  display:flex; flex-direction:column; gap:8px; flex:1;
-  padding-bottom:var(--pad-bottom);
-}
+.game-board{display:flex; flex-direction:column; gap:8px; flex:1; padding-bottom:var(--pad-bottom)}
 
-/* Foundation */
+/* Foundation — 4 точных колонки по ширине карты */
 .foundation-area{
-  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:8px; margin-inline:auto; margin-bottom:6px;
-  width:100%; max-width:min( clamp(150px, 48vw, 380px), var(--tableau-maxw) );
+  display:grid;
+  grid-template-columns: repeat(4, var(--card-max)); /* ← фиксированные треки */
+  gap:var(--gap);
+  justify-content:center;            /* центрируем комплектом */
+  align-content:start;
+  width:100%;
+  max-width:var(--tableau-maxw);
+  margin:0 auto 6px auto;
 }
 .foundation-slot{
-  aspect-ratio:2.5/3.5; min-height:58px; max-width:var(--card-max);
+  width:var(--card-max);              /* ← слот = ширина карты */
+  aspect-ratio:2.5/3.5; min-height:58px;
   background:var(--slot-bg); border:2px dashed var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
   transition:border-color .2s;
 }
 .foundation-slot:hover{border-color:var(--btn-primary-bg)}
 
-/* Stock / Waste */
+/* Stock / Waste — та же ширина, что у карты */
 .stock-waste-area{
-  display:flex; gap:8px; justify-content:center;
-  width:100%; max-width:min( clamp(130px,45vw,210px), var(--tableau-maxw) );
-  margin-inline:auto;
+  display:flex; gap:var(--gap); justify-content:center;
+  width:100%; max-width:var(--tableau-maxw); margin:0 auto;
 }
-.stock-container,.waste-container{flex:1; max-width:var(--card-max)}
+.stock-container,.waste-container{flex:0 0 var(--card-max); max-width:var(--card-max)}
 .stock,.waste{
-  aspect-ratio:2.5/3.5; min-height:58px; max-width:var(--card-max);
+  width:var(--card-max);
+  aspect-ratio:2.5/3.5; min-height:58px;
   background:var(--slot-bg); border:2px solid var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; position:relative; transition:border-color .2s;
 }
 .stock:hover,.waste:hover{border-color:var(--btn-primary-bg)}
 
-/* Tableau */
+/* Tableau — 7 точных колонок по ширине карты */
 .tableau-area{
   display:grid;
-  grid-template-columns:repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, var(--card-max)); /* ← фиксированные треки */
   gap:var(--gap);
+  justify-content:center;            /* центрируем комплектом */
+  align-content:start;
   width:100%;
   max-width:var(--tableau-maxw);
-  margin-inline:auto;
+  margin:0 auto;
   flex:1;
   padding-bottom:var(--pad-bottom);
 }
 .tableau-slot{
+  width:var(--card-max);              /* ← слот = ширина карты */
   background:var(--slot-bg); border:2px dashed var(--slot-border);
   border-radius:10px;
 
-  /* min-height от доступной высоты: 26–30% (динамично) */
+  /* высота от доступной вертикали: 26–30% (динамично) */
   --mh-base: max(var(--avail-h), 320px);
   min-height: clamp(86px, calc(var(--mh-base) * 0.28), 360px);
 
@@ -247,39 +245,25 @@ body{
 
 /* ============ Height-based compression (когда мало вертикали) ============ */
 @media (max-height:860px){
-  :root{
-    --stack-open:calc(var(--card-h)*-0.34);
-    --stack-closed:calc(var(--card-h)*-0.27);
-  }
+  :root{ --stack-open:calc(var(--card-h)*-0.34); --stack-closed:calc(var(--card-h)*-0.27); }
   .tableau-slot{min-height: clamp(84px, calc(max(var(--avail-h), 300px) * 0.26), 330px)}
 }
 @media (max-height:800px){
-  :root{
-    --stack-open:calc(var(--card-h)*-0.32);
-    --stack-closed:calc(var(--card-h)*-0.25);
-  }
+  :root{ --stack-open:calc(var(--card-h)*-0.32); --stack-closed:calc(var(--card-h)*-0.25); }
   .tableau-slot{min-height: clamp(80px, calc(max(var(--avail-h), 270px) * 0.24), 300px)}
 }
 @media (max-height:740px){
-  :root{
-    --stack-open:calc(var(--card-h)*-0.30);
-    --stack-closed:calc(var(--card-h)*-0.23);
-  }
+  :root{ --stack-open:calc(var(--card-h)*-0.30); --stack-closed:calc(var(--card-h)*-0.23); }
   .tableau-slot{min-height: clamp(76px, calc(max(var(--avail-h), 250px) * 0.22), 280px)}
 }
 
 /* ============ Width breakpoints (без «моделей») ============ */
 @media (max-width:768px){
   .game-header{flex-wrap:wrap; align-items:flex-start}
-  .foundation-area{grid-template-columns:repeat(2,1fr)}
-  .tableau-area{grid-template-columns:repeat(7,1fr)} /* 7 колонок всегда, но уже — из вычисленного maxw */
+  /* foundation/tableau уже фикс-колонки — менять грид не нужно */
 }
 
-/* ============ Animations for timer/hints ============ */
-@keyframes pulse-timer{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(1.05)}}
-@keyframes fade-in-out{0%,100%{opacity:.7}50%{opacity:1}}
-
-/* ============ Nickname / Stats / Leaderboard (как было) ============ */
+/* ============ Extras (статистика/ник/анимации) ============ */
 .nickname-input-container{margin:20px 0}
 .nickname-input{
   width:100%;padding:12px;border:2px solid var(--slot-border);border-radius:8px;
@@ -307,16 +291,12 @@ body{
 .stats-footer{margin-top:16px;padding:12px;background:var(--slot-bg);border-radius:8px;text-align:center;font-size:14px}
 .stats-footer p{margin:0;font-weight:600}
 
-/* ============ Win Stats ============ */
-.win-stats{margin:14px 0;padding:12px;background:var(--slot-bg);border-radius:10px}
-.win-stats p{margin:5px 0;font-weight:600}
-
-/* ============ Card animations / Hints ============ */
+@keyframes pulse-timer{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(1.05)}}
+@keyframes fade-in-out{0%,100%{opacity:.7}50%{opacity:1}}
 @keyframes cardFlip{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
 .card.flipping{animation:cardFlip .3s ease-in-out}
 @keyframes cardMove{from{transform:scale(1)}50%{transform:scale(1.05)}to{transform:scale(1)}}
 .card.moving{animation:cardMove .2s ease-in-out}
-
 .hint-highlight{
   animation:hint-pulse 1s ease-in-out infinite;
   border-color:#ffd700 !important; background-color:rgba(255,215,0,.1) !important;
