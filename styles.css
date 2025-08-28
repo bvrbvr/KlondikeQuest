@@ -163,11 +163,16 @@ html.dragging {
 .foundation-slot{
   width:var(--card-max);
   aspect-ratio:2.5/3.5; min-height:58px;
-  background:var(--slot-bg); border:2px dashed var(--slot-border);
+  background:rgba(255,255,255,0.9); border:2px dashed var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
-  transition:border-color .2s;
+  transition:border-color .2s, background-color .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.foundation-slot:hover{border-color:var(--btn-primary-bg)}
+.foundation-slot:hover{
+  border-color:var(--btn-primary-bg);
+  background:rgba(255,255,255,0.95);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
 /* ——— STOCK / WASTE ——— */
 .stock-waste-area{
@@ -179,11 +184,16 @@ html.dragging {
 .stock,.waste{
   width:var(--card-max);
   aspect-ratio:2.5/3.5; min-height:58px;
-  background:var(--slot-bg); border:2px solid var(--slot-border);
+  background:rgba(255,255,255,0.9); border:2px solid var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; position:relative; transition:border-color .2s;
+  cursor:pointer; position:relative; transition:border-color .2s, background-color .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.stock:hover,.waste:hover{border-color:var(--btn-primary-bg)}
+.stock:hover,.waste:hover{
+  border-color:var(--btn-primary-bg);
+  background:rgba(255,255,255,0.95);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
 /* ——— TABLEAU (7 точных колонок) ——— */
 .tableau-area{
@@ -201,16 +211,21 @@ html.dragging {
 }
 .tableau-slot{
   width:var(--card-max);
-  background:var(--slot-bg); border:2px dashed var(--slot-border);
+  background:rgba(255,255,255,0.9); border:2px dashed var(--slot-border);
   border-radius:10px;
 
   /* динамическая высота от доступной вертикали */
   --mh-base: max(var(--avail-h), 320px);
   min-height: clamp(86px, calc(var(--mh-base) * 0.28), 360px);
 
-  padding:5px; position:relative; transition:border-color .2s;
+  padding:5px; position:relative; transition:border-color .2s, background-color .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.tableau-slot:hover{border-color:var(--btn-primary-bg)}
+.tableau-slot:hover{
+  border-color:var(--btn-primary-bg);
+  background:rgba(255,255,255,0.95);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
 /* ============ Cards ============ */
 .card{
@@ -242,7 +257,9 @@ html.dragging {
 /* ============ Drag & Drop ============ */
 .card.dragging{opacity:.9; transform:scale(1.03) rotate(1.5deg); z-index:1000}
 .foundation-slot.drag-over,.tableau-slot.drag-over,.card.drag-over{
-  border-color:var(--btn-primary-bg); background-color:rgba(0,123,255,.08);
+  border-color:var(--btn-primary-bg); 
+  background-color:rgba(0,123,255,.15);
+  box-shadow: 0 4px 16px rgba(0,123,255,0.3);
 }
 
 /* Предотвращение прокрутки при перетаскивании */
