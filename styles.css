@@ -122,7 +122,7 @@ html.dragging {
 /* ——— HEADER ——— */
 .game-header{
   position:sticky;
-  top: var(--csafe-top);              /* ровно под системной шапкой Telegram */
+  top: calc(var(--csafe-top) + 24px);  /* немного ниже системной шапки Telegram */
   z-index:5;
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding:8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
