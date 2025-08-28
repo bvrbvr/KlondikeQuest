@@ -548,8 +548,11 @@ function clearDragState() {
     });
     document.documentElement.classList.remove('dragging');
     document.body.classList.remove('dragging');
+    document.querySelector('.game-container')?.classList.remove('dragging');
+    document.querySelector('.game-board')?.classList.remove('dragging');
     gameState.draggedCards = [];
     gameState.dragSource = null;
+    console.log('Drag state cleared');
 }
 
 // Настройка Touch событий
@@ -570,11 +573,9 @@ function setupTouchEvents() {
     document.addEventListener('touchstart', (e) => {
       const card = e.target.closest('.card');
       if (card && card.draggable) {
-        // Сразу блокируем ВСЁ
         document.documentElement.classList.add('dragging');
         document.body.classList.add('dragging');
         document.querySelector('.game-container')?.classList.add('dragging');
-        document.querySelector('.game-board')?.classList.add('dragging');
 
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -582,13 +583,9 @@ function setupTouchEvents() {
         draggedElement = card;
         isDragging = false;
 
-        // Критично для iOS/Telegram: не даём начаться скроллу
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('Touch start on card:', card.dataset.suit, card.dataset.value);
+        e.preventDefault();   // <<< блокируем скролл Telegram
       }
-    }, { passive: false });
+    }, { passive: false });   // <<< обязательно так
     
     document.addEventListener('touchmove', (e) => {
         if (draggedElement) {
@@ -689,7 +686,7 @@ function setupTouchEvents() {
             draggedElement = null;
             isDragging = false;
         }
-    });
+    }, { passive: false });
 }
 
 // Получение последовательности карт

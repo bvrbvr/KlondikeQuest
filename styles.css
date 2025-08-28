@@ -95,6 +95,7 @@ html.dragging {
   position: fixed !important;
   width: 100% !important;
   height: 100% !important;
+  background: linear-gradient(135deg,#ffffff 0%,#e3f2fd 30%,#1976d2 70%,#0d47a1 100%) fixed !important;
 }
 
 /* ============ Layout ============ */
@@ -278,10 +279,12 @@ html.dragging {
 html.dragging, body.dragging {
   overflow: hidden !important;
   position: fixed !important;
-  inset: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg,#ffffff 0%,#e3f2fd 30%,#1976d2 70%,#0d47a1 100%) fixed !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+  -webkit-overflow-scrolling: auto !important;
+  background-color: inherit !important; /* убираем белый морг */
 }
 
 /* Дополнительное предотвращение прокрутки для игровых областей */
