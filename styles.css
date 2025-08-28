@@ -86,9 +86,9 @@ body {
   overflow-y: auto;
   scroll-padding-top: calc(var(--ui-header-h) + 4px);
   scroll-padding-bottom: var(--safe-bottom-pad);
-  background: var(--bg-color);
+  background: transparent;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* === Interactive Background === */
@@ -98,7 +98,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   overflow: hidden;
 }
@@ -753,55 +753,110 @@ body {
 /* iPhone 16 и другие узкие экраны */
 @media (max-width: 393px) { /* iPhone 16, 15, 14 */
   :root {
-    --card-max: clamp(28px, 8.5vw, 52px);
-    --font-s: clamp(6px, 1.6vw, 8px);
-    --font-m: clamp(8px, 2vw, 11px);
-    --stack-open: calc(var(--card-h) * -0.45);
-    --stack-closed: calc(var(--card-h) * -0.37);
+    --card-max: clamp(24px, 7vw, 45px);
+    --font-s: clamp(5px, 1.4vw, 7px);
+    --font-m: clamp(7px, 1.8vw, 10px);
+    --stack-open: calc(var(--card-h) * -0.5);
+    --stack-closed: calc(var(--card-h) * -0.4);
   }
   
-  .tableau-area {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 3px;
-    max-width: clamp(180px, 78vw, 650px);
+  .game-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 2px calc(2px + env(safe-area-inset-right)) 2px
+             calc(2px + env(safe-area-inset-left));
+  }
+  
+  .game-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px;
+    font-size: 7px;
+  }
+  
+  .game-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  
+  .btn {
+    min-width: auto;
+    padding: 3px 4px;
+    font-size: 8px;
+    min-height: 32px;
+  }
+  
+  #hint-btn {
+    font-size: 7px;
+    padding: 2px 3px;
   }
   
   .foundation-area {
     grid-template-columns: repeat(2, 1fr);
-    max-width: clamp(110px, 40vw, 300px);
-    gap: 3px;
+    max-width: clamp(100px, 35vw, 280px);
+    gap: 2px;
+    margin-bottom: 4px;
+  }
+  
+  .foundation-slot {
+    min-height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
   }
   
   .stock-waste-area {
-    max-width: clamp(90px, 38vw, 160px);
-    gap: 4px;
+    max-width: clamp(80px, 32vw, 140px);
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+  
+  .stock, .waste {
+    min-height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
+  }
+  
+  .tableau-area {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    max-width: clamp(160px, 70vw, 600px);
   }
   
   .tableau-slot {
-    min-height: clamp(70px, 20dvh, 260px);
-    padding: 2px;
+    min-height: clamp(60px, 18dvh, 240px);
+    padding: 1px;
+    border-width: 1px;
+    border-radius: 6px;
   }
   
-  .game-header {
-    padding: 1px calc(3px + env(safe-area-inset-right)) 1px
-             calc(3px + env(safe-area-inset-left));
+  .card {
+    padding: 1px;
+    border-radius: 4px;
   }
   
-  .game-info {
-    gap: 4px;
-    font-size: 8px;
+  .card-value {
+    font-size: calc(var(--font-s) + 0.5px);
   }
   
-  .btn {
-    min-width: 60px;
-    padding: 4px 6px;
-    font-size: 9px;
-    min-height: 40px;
+  .card-suit {
+    font-size: calc(var(--font-s) + 1px);
   }
   
-  #hint-btn {
-    font-size: 8px;
-    padding: 3px 5px;
+  .floating-card {
+    width: 25px;
+    height: 35px;
+    border-radius: 3px;
+  }
+  
+  .floating-card::before {
+    font-size: 14px;
+  }
+  
+  .timer-hint {
+    font-size: 6px;
+    margin-top: 1px;
   }
 }
 

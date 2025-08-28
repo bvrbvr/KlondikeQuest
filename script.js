@@ -790,9 +790,9 @@ function showHint() {
     if (!bestMove) {
         // Если нет доступных ходов, предлагаем взять карту из колоды
         if (gameState.stock.length > 0) {
-            showHintMessage('Возьмите карту из колоды');
+            showHintMessage('🎴 Возьмите карту из колоды - возможно, появится полезный ход!');
         } else {
-            showHintMessage('Нет доступных ходов. Попробуйте отменить последний ход или начать новую игру.');
+            showHintMessage('😔 Нет доступных ходов. Попробуйте отменить последний ход или начать новую игру.');
         }
         return;
     }
@@ -1173,7 +1173,7 @@ function findBestTarget(cardElement) {
 function findBestMove() {
     const moves = [];
     
-    // 1. Проверяем тузы (приоритет 1)
+    // 1. Проверяем тузы (приоритет 1) - самый высокий приоритет
     for (let t = 0; t < 7; t++) {
         const pile = gameState.tableau[t];
         if (pile.length > 0) {
@@ -1186,7 +1186,7 @@ function findBestMove() {
                             source: { type: 'tableau', index: t },
                             target: { type: 'foundation', index: f },
                             card: topCard,
-                            description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation`
+                            description: `🎯 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation - это откроет карту под ней!`
                         });
                     }
                 }
@@ -1194,7 +1194,7 @@ function findBestMove() {
         }
     }
     
-    // 2. Проверяем карты из waste (приоритет 2)
+    // 2. Проверяем карты из waste в foundation (приоритет 2)
     if (gameState.waste.length > 0) {
         const topCard = gameState.waste[gameState.waste.length - 1];
         for (let f = 0; f < 4; f++) {
@@ -1204,7 +1204,7 @@ function findBestMove() {
                     source: { type: 'waste', index: 0 },
                     target: { type: 'foundation', index: f },
                     card: topCard,
-                    description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в foundation`
+                    description: `⭐ Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в foundation`
                 });
             }
         }
@@ -1225,7 +1225,7 @@ function findBestMove() {
                             source: { type: 'tableau', index: sourceT },
                             target: { type: 'tableau', index: t },
                             card: topCard,
-                            description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в пустой tableau`
+                            description: `👑 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в пустой tableau - освободит место`
                         });
                     }
                 }
@@ -1233,12 +1233,14 @@ function findBestMove() {
         }
     }
     
-    // 4. Проверяем обычные ходы в tableau (приоритет 4)
+    // 4. Проверяем ходы, которые откроют закрытые карты (приоритет 4)
     for (let t = 0; t < 7; t++) {
         const pile = gameState.tableau[t];
-        if (pile.length > 0) {
+        if (pile.length > 1) {
             const topCard = pile[pile.length - 1];
-            if (topCard.faceUp) {
+            const cardBelow = pile[pile.length - 2];
+            if (topCard.faceUp && !cardBelow.faceUp) {
+                // Проверяем, можно ли переместить верхнюю карту
                 for (let targetT = 0; targetT < 7; targetT++) {
                     if (targetT === t) continue;
                     if (canMoveToTableau(topCard, targetT)) {
@@ -1247,8 +1249,9 @@ function findBestMove() {
                             source: { type: 'tableau', index: t },
                             target: { type: 'tableau', index: targetT },
                             card: topCard,
-                            description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в tableau`
+                            description: `🔓 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} - откроет карту под ней!`
                         });
+                        break; // Нашли один ход, достаточно
                     }
                 }
             }
@@ -1265,8 +1268,32 @@ function findBestMove() {
                     source: { type: 'waste', index: 0 },
                     target: { type: 'tableau', index: t },
                     card: topCard,
-                    description: `Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в tableau`
+                    description: `📄 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в tableau`
                 });
+            }
+        }
+    }
+    
+    // 6. Проверяем обычные ходы в tableau (приоритет 6) - только если нет лучших вариантов
+    if (moves.length === 0) {
+        for (let t = 0; t < 7; t++) {
+            const pile = gameState.tableau[t];
+            if (pile.length > 0) {
+                const topCard = pile[pile.length - 1];
+                if (topCard.faceUp) {
+                    for (let targetT = 0; targetT < 7; targetT++) {
+                        if (targetT === t) continue;
+                        if (canMoveToTableau(topCard, targetT)) {
+                            moves.push({
+                                priority: 6,
+                                source: { type: 'tableau', index: t },
+                                target: { type: 'tableau', index: targetT },
+                                card: topCard,
+                                description: `🔄 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в tableau`
+                            });
+                        }
+                    }
+                }
             }
         }
     }
