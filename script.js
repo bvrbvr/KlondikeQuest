@@ -47,6 +47,15 @@ if (window.Telegram && window.Telegram.WebApp) {
 	}
 }
 
+// Флаг: использовать ли нативный HTML5 Drag&Drop (только десктоп)
+const USE_NATIVE_DND = (function() {
+    const isTelegram = !!(window.Telegram && window.Telegram.WebApp);
+    const hasPointerFine = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // В Telegram и на мобильных не используем нативный DnD — только наш touch-режим
+    return !isTelegram && hasPointerFine && !isIOS;
+})();
+
 // Константы игры
 const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -352,8 +361,8 @@ function createCardElement(card, isTopCard) {
 	cardElement.className = `card ${card.faceUp ? '' : 'face-down'} ${card.faceUp && (card.suit === 'hearts' || card.suit === 'diamonds') ? 'red' : 'black'}`;
 	cardElement.dataset.suit = card.suit;
 	cardElement.dataset.value = card.value;
-	// Разрешаем перетаскивать любую открытую карту (для переноса последовательностей)
-	cardElement.draggable = card.faceUp; 
+	// Нативный drag разрешаем только на десктопе. На мобильных/Telegram всё через touch.
+	cardElement.draggable = USE_NATIVE_DND && card.faceUp; 
 	
 	if (card.faceUp) {
 		cardElement.innerHTML = `
@@ -481,6 +490,7 @@ function ensureControlButtons() {
 
 // Настройка Drag and Drop
 function setupDragAndDrop() {
+    if (!USE_NATIVE_DND) return; // мобильные/Telegram — только touch-сценарий
     document.addEventListener('dragstart', handleDragStart);
     document.addEventListener('dragover', handleDragOver);
     document.addEventListener('drop', handleDrop);
