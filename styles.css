@@ -95,11 +95,17 @@ body{
 /* страховочный отбойник на случай, если webview срежет паддинги */
 .game-container::after{content:""; display:block; height:calc(var(--pad-bottom) + 120px); flex:0 0 auto;}
 
-.game-header{
-  position:sticky; top:var(--csafe-top); z-index:5;
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-  padding:8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
-  min-height:var(--ui-header-h); background:var(--bg-color);
+.game-header {
+  position: sticky;
+  top: calc(var(--csafe-top) + 40px); /* ← 40px запас под системные кнопки Telegram */
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
+  min-height: var(--ui-header-h);
+  background: var(--bg-color);
 }
 .game-info{display:flex;gap:10px;font-size:10px}
 .timer,.moves{display:flex;flex-direction:column;align-items:flex-start}
@@ -120,18 +126,18 @@ body{
 .game-board{display:flex; flex-direction:column; gap:8px; flex:1; padding-bottom:var(--pad-bottom)}
 
 /* Foundation — 4 точных колонки по ширине карты */
-.foundation-area{
-  display:grid;
-  grid-template-columns: repeat(4, var(--card-max)); /* ← фиксированные треки */
-  gap:var(--gap);
-  justify-content:center;            /* центрируем комплектом */
-  align-content:start;
-  width:100%;
-  max-width:var(--tableau-maxw);
-  margin:16px auto 6px auto;         /* ← было 0 auto 6px auto; теперь сверху 16px */
+.foundation-area {
+  display: grid;
+  grid-template-columns: repeat(4, var(--card-max));
+  gap: var(--gap);
+  justify-content: center;
+  align-content: start;
+  width: 100%;
+  max-width: var(--tableau-maxw);
+  margin: 48px auto 6px auto; 
 }
 .foundation-slot{
-  width:var(--card-max);              /* ← слот = ширина карты */
+  width:var(--card-max);             
   aspect-ratio:2.5/3.5; min-height:58px;
   background:var(--slot-bg); border:2px dashed var(--slot-border);
   border-radius:10px; display:flex; align-items:center; justify-content:center;
