@@ -143,15 +143,50 @@ function hideNicknameModal() {
 }
 
 // Сохранить псевдоним
-function saveNickname() {
+async function saveNickname() {
     const nickname = elements.nicknameInput.value.trim();
     if (nickname.length >= 2 && nickname.length <= 20) {
-        localStorage.setItem('userNickname', nickname);
-        updateUserNicknameDisplay(nickname);
-        hideNicknameModal();
-        
         // Отправляем псевдоним на сервер для регистрации
-        registerUser(nickname);
+        const result = await registerUser(nickname);
+        
+        if (result.success) {
+            localStorage.setItem('userNickname', nickname);
+            updateUserNicknameDisplay(nickname);
+            hideNicknameModal();
+        } else if (result.error === 'nickname_taken') {
+            // Показываем ошибку занятого псевдонима
+            if (tg && typeof tg.showPopup === 'function') {
+                try {
+                    tg.showPopup({
+                        title: 'Псевдоним занят',
+                        message: result.message || 'Этот псевдоним уже занят другим игроком',
+                        buttons: [{ type: 'ok', text: 'Ок' }]
+                    });
+                } catch (e) {
+                    alert(result.message || 'Этот псевдоним уже занят другим игроком');
+                }
+            } else {
+                alert(result.message || 'Этот псевдоним уже занят другим игроком');
+            }
+            // Очищаем поле ввода
+            elements.nicknameInput.value = '';
+            elements.nicknameInput.focus();
+        } else {
+            // Другие ошибки
+            if (tg && typeof tg.showPopup === 'function') {
+                try {
+                    tg.showPopup({
+                        title: 'Ошибка',
+                        message: 'Не удалось сохранить псевдоним. Попробуйте еще раз.',
+                        buttons: [{ type: 'ok', text: 'Ок' }]
+                    });
+                } catch (e) {
+                    alert('Не удалось сохранить псевдоним. Попробуйте еще раз.');
+                }
+            } else {
+                alert('Не удалось сохранить псевдоним. Попробуйте еще раз.');
+            }
+        }
     } else {
         alert('Псевдоним должен содержать от 2 до 20 символов');
     }
@@ -173,7 +208,7 @@ async function registerUser(nickname) {
         
         if (!userId) {
             console.log('Не удалось получить ID пользователя Telegram');
-            return;
+            return { success: false, error: 'no_user_id' };
         }
         
         const response = await fetch(getApiBase() + '/register', {
@@ -188,13 +223,21 @@ async function registerUser(nickname) {
             })
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
             console.log('Пользователь успешно зарегистрирован');
+            return { success: true };
+        } else if (response.status === 409 && data.error === 'nickname_taken') {
+            console.log('Псевдоним занят:', data.message);
+            return { success: false, error: 'nickname_taken', message: data.message };
         } else {
             console.log('Ошибка при регистрации пользователя');
+            return { success: false, error: 'registration_failed' };
         }
     } catch (error) {
         console.log('Ошибка при регистрации:', error);
+        return { success: false, error: 'network_error' };
     }
 }
 
