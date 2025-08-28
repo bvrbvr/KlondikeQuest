@@ -282,6 +282,15 @@ body.dragging {
   touch-action: none !important;
 }
 
+/* Улучшенные стили для перетаскивания на мобильных */
+@media (max-width: 768px) {
+  .card.dragging {
+    opacity: 0.8 !important;
+    transform: scale(1.05) rotate(2deg) !important;
+    z-index: 9999 !important;
+  }
+}
+
 /* ============ Modal & misc ============ */
 .modal{
   position:fixed; inset:0; background:var(--modal-bg);

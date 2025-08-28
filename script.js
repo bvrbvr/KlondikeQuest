@@ -119,6 +119,9 @@ function initGame() {
     // startTimer();
     // Проверка отсутствия ходов на старте (на случай тупика после раздачи)
     notifyNoMovesIfNeeded();
+    
+    // Добавляем функцию тестирования в глобальную область для отладки
+    window.testDragAndDrop = testDragAndDrop;
 }
 
 // Проверка псевдонима пользователя
@@ -545,10 +548,6 @@ function clearDragState() {
     });
     document.documentElement.classList.remove('dragging');
     document.body.classList.remove('dragging');
-    document.querySelector('.game-container')?.classList.remove('dragging');
-    document.querySelector('.game-board')?.classList.remove('dragging');
-    document.querySelector('.foundation-area')?.classList.remove('dragging');
-    document.querySelector('.tableau-area')?.classList.remove('dragging');
     gameState.draggedCards = [];
     gameState.dragSource = null;
 }
@@ -559,17 +558,7 @@ function setupTouchEvents() {
     let draggedElement = null;
     let isDragging = false;
     
-    // Предотвращение прокрутки страницы при касании карт
-    document.addEventListener('touchmove', (e) => {
-        const card = e.target.closest('.card');
-        if (card && card.draggable) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }
-    }, { passive: false });
-    
-    // Глобальное предотвращение прокрутки при перетаскивании
+    // Предотвращение прокрутки при перетаскивании
     document.addEventListener('touchmove', (e) => {
         if (isDragging) {
             e.preventDefault();
@@ -596,15 +585,11 @@ function setupTouchEvents() {
             const deltaY = touch.clientY - touchStartY;
             
             // Если движение больше порога, начинаем перетаскивание
-            if (!isDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+            if (!isDragging && (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15)) {
                 isDragging = true;
                 draggedElement.classList.add('dragging');
                 document.documentElement.classList.add('dragging');
                 document.body.classList.add('dragging');
-                document.querySelector('.game-container').classList.add('dragging');
-                document.querySelector('.game-board').classList.add('dragging');
-                document.querySelector('.foundation-area').classList.add('dragging');
-                document.querySelector('.tableau-area').classList.add('dragging');
             }
             
             if (isDragging) {
@@ -624,18 +609,17 @@ function setupTouchEvents() {
                 // Если перетаскивали, ищем цель для сброса
                 const touch = e.changedTouches[0];
                 
-                // Временно скрываем перетаскиваемый элемент для правильного определения цели
+                // Временно скрываем перетаскиваемый элемент
                 const originalTransform = draggedElement.style.transform;
-                const originalOpacity = draggedElement.style.opacity;
                 draggedElement.style.transform = '';
                 draggedElement.style.opacity = '0';
                 
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                const target = elementBelow ? elementBelow.closest('.foundation-slot, .tableau-slot, .waste') : null;
+                const target = elementBelow ? elementBelow.closest('.foundation-slot, .tableau-slot, .waste, .card') : null;
                 
                 // Восстанавливаем стили
                 draggedElement.style.transform = originalTransform;
-                draggedElement.style.opacity = originalOpacity;
+                draggedElement.style.opacity = '';
                 
                 if (target) {
                     const cards = getCardSequence(draggedElement);
@@ -652,7 +636,7 @@ function setupTouchEvents() {
                         console.log('Cannot move cards. targetLocation:', targetLocation, 'canMove:', targetLocation ? canMoveCards(cards, targetLocation) : false);
                     }
                 }
-            } else if (touchDuration < 200) {
+            } else if (touchDuration < 300) {
                 // Короткое касание - попытка автоматического перемещения
                 const target = findBestTarget(draggedElement);
                 if (target) {
@@ -662,14 +646,11 @@ function setupTouchEvents() {
                 }
             }
             
+            // Очистка состояния
             draggedElement.style.transform = '';
             draggedElement.classList.remove('dragging');
             document.documentElement.classList.remove('dragging');
             document.body.classList.remove('dragging');
-            document.querySelector('.game-container').classList.remove('dragging');
-            document.querySelector('.game-board').classList.remove('dragging');
-            document.querySelector('.foundation-area').classList.remove('dragging');
-            document.querySelector('.tableau-area').classList.remove('dragging');
             draggedElement = null;
             isDragging = false;
         }
@@ -741,19 +722,25 @@ function getSlotLocation(slotElement) {
 	
 	console.log('getSlotLocation called with:', slotElement, 'classes:', slotElement.classList);
 	
-	// Если дропнули прямо на карту, берём индекс из карты и определяем тип по родителю
+	// Если дропнули прямо на карту, определяем тип по родителю
 	if (slotElement.classList && slotElement.classList.contains('card')) {
 		const parent = slotElement.closest('.tableau-slot, .foundation-slot, .waste');
 		if (!parent) return null;
-		const idx = slotElement.dataset.slotIndex ? parseInt(slotElement.dataset.slotIndex) : null;
+		
 		if (parent.classList.contains('waste')) {
 			return { type: 'waste', index: 0 };
 		}
 		if (parent.classList.contains('foundation-slot')) {
-			return { type: 'foundation', index: idx != null ? idx : 0 };
+			const slotData = parent.dataset.slot;
+			if (slotData && slotData.startsWith('foundation-')) {
+				return { type: 'foundation', index: parseInt(slotData.split('-')[1]) };
+			}
 		}
 		if (parent.classList.contains('tableau-slot')) {
-			return { type: 'tableau', index: idx != null ? idx : 0 };
+			const slotData = parent.dataset.slot;
+			if (slotData && slotData.startsWith('tableau-')) {
+				return { type: 'tableau', index: parseInt(slotData.split('-')[1]) };
+			}
 		}
 		return null;
 	}
@@ -1677,6 +1664,14 @@ function setupDoubleClickEvents() {
 			moveCards([card], source, target);
 		}
 	});
+}
+
+// Функция для тестирования перетаскивания
+function testDragAndDrop() {
+    console.log('Testing drag and drop functionality...');
+    console.log('Game state:', gameState);
+    console.log('Tableau:', gameState.tableau);
+    console.log('Foundation:', gameState.foundation);
 }
 
 // Проверка наличия доступных ходов
