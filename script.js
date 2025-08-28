@@ -543,7 +543,12 @@ function clearDragState() {
     document.querySelectorAll('.dragging, .drag-over').forEach(el => {
         el.classList.remove('dragging', 'drag-over');
     });
+    document.documentElement.classList.remove('dragging');
     document.body.classList.remove('dragging');
+    document.querySelector('.game-container')?.classList.remove('dragging');
+    document.querySelector('.game-board')?.classList.remove('dragging');
+    document.querySelector('.foundation-area')?.classList.remove('dragging');
+    document.querySelector('.tableau-area')?.classList.remove('dragging');
     gameState.draggedCards = [];
     gameState.dragSource = null;
 }
@@ -559,6 +564,17 @@ function setupTouchEvents() {
         const card = e.target.closest('.card');
         if (card && card.draggable) {
             e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }, { passive: false });
+    
+    // Глобальное предотвращение прокрутки при перетаскивании
+    document.addEventListener('touchmove', (e) => {
+        if (isDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
         }
     }, { passive: false });
     
@@ -583,7 +599,12 @@ function setupTouchEvents() {
             if (!isDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
                 isDragging = true;
                 draggedElement.classList.add('dragging');
+                document.documentElement.classList.add('dragging');
                 document.body.classList.add('dragging');
+                document.querySelector('.game-container').classList.add('dragging');
+                document.querySelector('.game-board').classList.add('dragging');
+                document.querySelector('.foundation-area').classList.add('dragging');
+                document.querySelector('.tableau-area').classList.add('dragging');
             }
             
             if (isDragging) {
@@ -626,7 +647,12 @@ function setupTouchEvents() {
             
             draggedElement.style.transform = '';
             draggedElement.classList.remove('dragging');
+            document.documentElement.classList.remove('dragging');
             document.body.classList.remove('dragging');
+            document.querySelector('.game-container').classList.remove('dragging');
+            document.querySelector('.game-board').classList.remove('dragging');
+            document.querySelector('.foundation-area').classList.remove('dragging');
+            document.querySelector('.tableau-area').classList.remove('dragging');
             draggedElement = null;
             isDragging = false;
         }
