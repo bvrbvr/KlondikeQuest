@@ -489,13 +489,16 @@ function setupDragAndDrop() {
 
 // Обработка начала перетаскивания
 function handleDragStart(e) {
-	if (e.target.classList.contains('card') && e.target.draggable) {
-		e.target.classList.add('dragging');
-		gameState.draggedCards = getCardSequence(e.target);
-		gameState.dragSource = getCardLocation(e.target);
+	const card = e.target && e.target.closest ? e.target.closest('.card') : null;
+	if (card && card.draggable) {
+		card.classList.add('dragging');
+		gameState.draggedCards = getCardSequence(card);
+		gameState.dragSource = getCardLocation(card);
 		if (e.dataTransfer) {
 			e.dataTransfer.setData('text/plain', JSON.stringify({ from: 'card' }));
 			e.dataTransfer.effectAllowed = 'move';
+			// Помогаем браузеру корректно рисовать drag-превью
+			try { e.dataTransfer.setDragImage(card, Math.floor(card.offsetWidth/2), Math.floor(card.offsetHeight/2)); } catch(_) {}
 		}
 		try { console.log('DragStart sequence size:', gameState.draggedCards.length, 'from source:', gameState.dragSource); } catch (_) {}
 	}
@@ -507,9 +510,9 @@ function handleDragOver(e) {
 	if (e.dataTransfer) {
 		e.dataTransfer.dropEffect = 'move';
 	}
-	if (e.target.classList.contains('card') || e.target.classList.contains('foundation-slot') || 
-		e.target.classList.contains('tableau-slot') || e.target.classList.contains('waste')) {
-		e.target.classList.add('drag-over');
+	const over = e.target && e.target.closest ? e.target.closest('.card, .foundation-slot, .tableau-slot, .waste') : null;
+	if (over) {
+		over.classList.add('drag-over');
 	}
 }
 
