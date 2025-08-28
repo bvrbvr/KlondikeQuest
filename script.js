@@ -570,21 +570,15 @@ function setupTouchEvents() {
     document.addEventListener('touchstart', (e) => {
         const card = e.target.closest('.card');
         if (card && card.draggable) {
-          // Сразу блокируем прокрутку страницы до окончания жеста
-          document.documentElement.classList.add('dragging');
-          document.body.classList.add('dragging');
-          document.querySelector('.game-container')?.classList.add('dragging');
-      
           touchStartX = e.touches[0].clientX;
           touchStartY = e.touches[0].clientY;
           touchStartTime = Date.now();
           draggedElement = card;
           isDragging = false;
-      
-          e.preventDefault();
-          e.stopPropagation();
+          
+          // НЕ блокируем прокрутку сразу, только если начнется реальное перетаскивание
         }
-      }, { passive: false });
+      }, { passive: true });
     
     document.addEventListener('touchmove', (e) => {
         if (draggedElement) {
@@ -596,8 +590,10 @@ function setupTouchEvents() {
             if (!isDragging && (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15)) {
                 isDragging = true;
                 draggedElement.classList.add('dragging');
+                // ТОЛЬКО СЕЙЧАС блокируем прокрутку
                 document.documentElement.classList.add('dragging');
                 document.body.classList.add('dragging');
+                document.querySelector('.game-container')?.classList.add('dragging');
             }
             
             if (isDragging) {
@@ -623,7 +619,17 @@ function setupTouchEvents() {
                 draggedElement.style.opacity = '0';
                 
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                const target = elementBelow ? elementBelow.closest('.foundation-slot, .tableau-slot, .waste, .card') : null;
+                console.log('Element below touch:', elementBelow);
+                
+                // Ищем ближайший валидный слот
+                let target = null;
+                if (elementBelow) {
+                    target = elementBelow.closest('.foundation-slot, .tableau-slot, .waste');
+                    if (!target && elementBelow.classList.contains('card')) {
+                        target = elementBelow.closest('.foundation-slot, .tableau-slot, .waste');
+                    }
+                    console.log('Found target:', target);
+                }
                 
                 // Восстанавливаем стили
                 draggedElement.style.transform = originalTransform;
@@ -634,15 +640,18 @@ function setupTouchEvents() {
                     const source = getCardLocation(draggedElement);
                     const targetLocation = getSlotLocation(target);
                     
-                    console.log('Drop target:', target, 'targetLocation:', targetLocation);
-                    console.log('Cards to move:', cards, 'source:', source);
+                    console.log('Touch Drop - target:', target, 'targetLocation:', targetLocation);
+                    console.log('Touch Drop - cards to move:', cards, 'source:', source);
+                    console.log('Touch Drop - dragged element:', draggedElement);
                     
                     if (targetLocation && canMoveCards(cards, targetLocation)) {
-                        console.log('Moving cards...');
+                        console.log('Touch Drop - Moving cards...');
                         moveCards(cards, source, targetLocation);
                     } else {
-                        console.log('Cannot move cards. targetLocation:', targetLocation, 'canMove:', targetLocation ? canMoveCards(cards, targetLocation) : false);
+                        console.log('Touch Drop - Cannot move cards. targetLocation:', targetLocation, 'canMove:', targetLocation ? canMoveCards(cards, targetLocation) : false);
                     }
+                } else {
+                    console.log('Touch Drop - No valid target found');
                 }
             } else if (touchDuration < 300) {
                 // Короткое касание - попытка автоматического перемещения
@@ -703,22 +712,22 @@ function getCardLocation(cardElement) {
     }
     
     if (slot.classList.contains('foundation-slot')) {
-        const slotData = slot.dataset.slot;
-        if (slotData && slotData.startsWith('foundation-')) {
-            return { 
-                type: 'foundation', 
-                index: parseInt(slotData.split('-')[1]) 
-            };
+        // Используем более надежный способ определения индекса
+        const foundationSlots = document.querySelectorAll('.foundation-slot');
+        for (let i = 0; i < foundationSlots.length; i++) {
+            if (foundationSlots[i] === slot) {
+                return { type: 'foundation', index: i };
+            }
         }
     }
     
     if (slot.classList.contains('tableau-slot')) {
-        const slotData = slot.dataset.slot;
-        if (slotData && slotData.startsWith('tableau-')) {
-            return { 
-                type: 'tableau', 
-                index: parseInt(slotData.split('-')[1]) 
-            };
+        // Используем более надежный способ определения индекса
+        const tableauSlots = document.querySelectorAll('.tableau-slot');
+        for (let i = 0; i < tableauSlots.length; i++) {
+            if (tableauSlots[i] === slot) {
+                return { type: 'tableau', index: i };
+            }
         }
     }
     
@@ -740,15 +749,21 @@ function getSlotLocation(slotElement) {
 			return { type: 'waste', index: 0 };
 		}
 		if (parent.classList.contains('foundation-slot')) {
-			const slotData = parent.dataset.slot;
-			if (slotData && slotData.startsWith('foundation-')) {
-				return { type: 'foundation', index: parseInt(slotData.split('-')[1]) };
+			// Используем более надежный способ определения индекса
+			const foundationSlots = document.querySelectorAll('.foundation-slot');
+			for (let i = 0; i < foundationSlots.length; i++) {
+				if (foundationSlots[i] === parent) {
+					return { type: 'foundation', index: i };
+				}
 			}
 		}
 		if (parent.classList.contains('tableau-slot')) {
-			const slotData = parent.dataset.slot;
-			if (slotData && slotData.startsWith('tableau-')) {
-				return { type: 'tableau', index: parseInt(slotData.split('-')[1]) };
+			// Используем более надежный способ определения индекса
+			const tableauSlots = document.querySelectorAll('.tableau-slot');
+			for (let i = 0; i < tableauSlots.length; i++) {
+				if (tableauSlots[i] === parent) {
+					return { type: 'tableau', index: i };
+				}
 			}
 		}
 		return null;
@@ -759,26 +774,24 @@ function getSlotLocation(slotElement) {
 	}
 	
 	if (slotElement.classList.contains('foundation-slot')) {
-		const slotData = slotElement.dataset.slot;
-		if (slotData && slotData.startsWith('foundation-')) {
-			const index = parseInt(slotData.split('-')[1]);
-			console.log('Foundation slot found:', index);
-			return { 
-				type: 'foundation', 
-				index: index
-			};
+		// Используем более надежный способ определения индекса
+		const foundationSlots = document.querySelectorAll('.foundation-slot');
+		for (let i = 0; i < foundationSlots.length; i++) {
+			if (foundationSlots[i] === slotElement) {
+				console.log('Foundation slot found:', i);
+				return { type: 'foundation', index: i };
+			}
 		}
 	}
 	
 	if (slotElement.classList.contains('tableau-slot')) {
-		const slotData = slotElement.dataset.slot;
-		if (slotData && slotData.startsWith('tableau-')) {
-			const index = parseInt(slotData.split('-')[1]);
-			console.log('Tableau slot found:', index);
-			return { 
-				type: 'tableau', 
-				index: index
-			};
+		// Используем более надежный способ определения индекса
+		const tableauSlots = document.querySelectorAll('.tableau-slot');
+		for (let i = 0; i < tableauSlots.length; i++) {
+			if (tableauSlots[i] === slotElement) {
+				console.log('Tableau slot found:', i);
+				return { type: 'tableau', index: i };
+			}
 		}
 	}
 	
