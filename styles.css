@@ -107,10 +107,10 @@ body {
   position: absolute;
   width: 40px;
   height: 56px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+  border: 1px solid #90caf9;
   border-radius: 6px;
-  opacity: 0.1;
+  opacity: 0.15;
   animation: float 15s infinite linear;
   transform-origin: center;
   transition: background-color 0.3s, border-color 0.3s;
@@ -135,22 +135,23 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 20px;
-  color: var(--text-color);
-  opacity: 0.3;
+  color: #1976d2;
+  opacity: 0.4;
 }
 
 .floating-card:nth-child(odd)::before {
   content: "♥";
-  color: var(--red-suit);
+  color: #d32f2f;
 }
 
 .floating-card:nth-child(3n)::before {
   content: "♦";
-  color: var(--red-suit);
+  color: #d32f2f;
 }
 
 .floating-card:nth-child(4n)::before {
   content: "♣";
+  color: #1976d2;
 }
 
 @keyframes float {
@@ -788,7 +789,7 @@ body {
     min-height: 32px;
   }
   
-  #hint-btn {
+  #hint-btn, #stats-btn {
     font-size: 7px;
     padding: 2px 3px;
   }

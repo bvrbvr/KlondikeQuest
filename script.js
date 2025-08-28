@@ -47,6 +47,7 @@ const elements = {
     newGameBtn: document.getElementById('new-game-btn'),
     undoBtn: document.getElementById('undo-btn'),
     hintBtn: document.getElementById('hint-btn'),
+    statsBtn: document.getElementById('stats-btn'),
     stock: document.getElementById('stock'),
     waste: document.getElementById('waste'),
     winModal: document.getElementById('win-modal'),
@@ -234,6 +235,9 @@ function setupEventListeners() {
     elements.newGameBtn.addEventListener('click', newGame);
     elements.undoBtn.addEventListener('click', undoMove);
     elements.hintBtn.addEventListener('click', showHint);
+    if (elements.statsBtn) {
+        elements.statsBtn.addEventListener('click', showStatistics);
+    }
     elements.shareResultBtn.addEventListener('click', shareResult);
     elements.playAgainBtn.addEventListener('click', () => {
         hideWinModal();
