@@ -1683,19 +1683,3 @@
           });
       });
       
-      // Убираем эффект при клике - пузыри больше не нужны
-      // document.addEventListener('click', (e) => {
-      //     if (e.target.closest('.game-container')) {
-      //         createRippleEffect(e.clientX, e.clientY);
-      //     }
-      // });
-  }
-  
-  // Удаляем функцию createRippleEffect - пузыри больше не нужны
-  // function createRippleEffect(x, y) { ... }
-  
-  // Удаляем CSS для эффекта волн
-  // const rippleStyle = document.createElement('style');
-  // rippleStyle.textContent = `...`;
-  // document.head.appendChild(rippleStyle);
-  
