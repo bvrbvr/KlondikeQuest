@@ -64,6 +64,10 @@ const USE_NATIVE_DND = (function () {
     return !(isMobileUA || hasCoarsePointer);
 })();
 
+// Уточняющие флаги платформы
+const PLATFORM = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || '';
+const IS_TELEGRAM_MOBILE = PLATFORM === 'android' || PLATFORM === 'ios';
+
 // Константы игры
 const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -467,6 +471,10 @@ function setupEventListeners() {
     
     // Touch события для мобильных устройств
     setupTouchEvents();
+    // Pointer Events для Telegram WebView (iOS/Android) — надёжнее, чем touch в некоторых сборках
+    if (IS_TELEGRAM_MOBILE) {
+        setupPointerEvents();
+    }
     
     // Двойной клик для тузов
     setupDoubleClickEvents();
@@ -721,6 +729,114 @@ function setupTouchEvents() {
     }, { passive: false });
   }
   
+// Pointer Events fallback для Telegram WebView (iOS/Android)
+function setupPointerEvents() {
+    let startX, startY, startTime;
+    let draggedElement = null;
+    let isDragging = false;
+
+    const addNoScroll = () => {
+      document.documentElement.classList.add('dragging');
+      document.body.classList.add('dragging');
+      document.querySelector('.game-container')?.classList.add('dragging');
+      document.querySelector('.game-board')?.classList.add('dragging');
+    };
+    const rmNoScroll = () => {
+      document.documentElement.classList.remove('dragging');
+      document.body.classList.remove('dragging');
+      document.querySelector('.game-container')?.classList.remove('dragging');
+      document.querySelector('.game-board')?.classList.remove('dragging');
+    };
+
+    document.addEventListener('pointermove', (e) => {
+      if (draggedElement && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, { passive: false });
+
+    document.addEventListener('pointerdown', (e) => {
+      if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
+      const card = e.target && e.target.closest ? e.target.closest('.card') : null;
+      const isFaceUp = card && !card.classList.contains('face-down');
+      if (card && isFaceUp) {
+        addNoScroll();
+        startX = e.clientX;
+        startY = e.clientY;
+        startTime = Date.now();
+        draggedElement = card;
+        isDragging = false;
+        try { card.setPointerCapture(e.pointerId); } catch(_) {}
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, { passive: false });
+
+    document.addEventListener('pointermove', (e) => {
+      if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
+      if (!draggedElement) return;
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      if (!isDragging && (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12)) {
+        isDragging = true;
+        draggedElement.classList.add('dragging');
+      }
+      if (isDragging) {
+        draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+
+    function finishPointer(e) {
+      if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
+      if (!draggedElement) return;
+      const duration = Date.now() - startTime;
+      if (isDragging) {
+        const originalTransform = draggedElement.style.transform;
+        const originalPointer = draggedElement.style.pointerEvents;
+        const originalVisibility = draggedElement.style.visibility;
+        draggedElement.style.transform = '';
+        draggedElement.style.pointerEvents = 'none';
+        draggedElement.style.visibility = 'hidden';
+        const elBelow = document.elementFromPoint(e.clientX, e.clientY);
+        let target = elBelow ? elBelow.closest('.foundation-slot, .tableau-slot, .waste, .card') : null;
+        if (target && target.classList && target.classList.contains('card')) {
+          target = target.closest('.foundation-slot, .tableau-slot, .waste');
+        }
+        draggedElement.style.transform = originalTransform;
+        draggedElement.style.pointerEvents = originalPointer || '';
+        draggedElement.style.visibility = originalVisibility || '';
+        if (target) {
+          const targetLocation = getSlotLocation(target);
+          const cards = getCardSequence(draggedElement);
+          const source = getCardLocation(draggedElement);
+          if (targetLocation && canMoveCards(cards, targetLocation)) {
+            moveCards(cards, source, targetLocation);
+          }
+        }
+      } else if (duration < 250) {
+        const target = findBestTarget(draggedElement);
+        if (target) {
+          const cards = getCardSequence(draggedElement);
+          const source = getCardLocation(draggedElement);
+          moveCards(cards, source, target);
+        }
+      }
+      draggedElement.style.transform = '';
+      draggedElement.classList.remove('dragging');
+      try { draggedElement.releasePointerCapture(e.pointerId); } catch(_) {}
+      draggedElement = null;
+      isDragging = false;
+      rmNoScroll();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    document.addEventListener('pointerup', finishPointer, { passive: false });
+    document.addEventListener('pointercancel', finishPointer, { passive: false });
+}
 
 // Получение последовательности карт
 function getCardSequence(cardElement) {
