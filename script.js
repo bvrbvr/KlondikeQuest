@@ -542,13 +542,8 @@
   
   // Очистка состояния перетаскивания
   function clearDragState() {
-      // Очищаем все элементы с классами dragging и drag-over
       document.querySelectorAll('.dragging, .drag-over').forEach(el => {
           el.classList.remove('dragging', 'drag-over');
-          // Сбрасываем любые inline стили transform
-          if (el.style.transform) {
-              el.style.transform = '';
-          }
       });
       gameState.draggedCards = [];
       gameState.dragSource = null;
@@ -573,19 +568,15 @@
 
   document.addEventListener('touchstart', (e) => {
     const card = e.target.closest('.card');
-    console.log('Touch start on:', card, 'face-down:', card?.classList.contains('face-down'));
-    if (card && !card.classList.contains('face-down')) { // Проверяем отсутствие класса face-down
+    if (card && card.draggable) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
       draggedElement = card;
-      // Добавляем класс dragging для визуального эффекта
-      card.classList.add('dragging');
       // Сохраняем последовательность как при desktop drag
       gameState.draggedCards = getCardSequence(card);
       gameState.dragSource = getCardLocation(card);
       lockScroll();
-      console.log('Started dragging card:', card);
     }
   }, { passive: true });
 
@@ -596,14 +587,13 @@
     const deltaX = touch.clientX - touchStartX;
     const deltaY = touch.clientY - touchStartY;
 
-    // двигаем карту визуально, объединяя с CSS transform
-    const baseTransform = 'scale(1.03) rotate(1.5deg)';
-    draggedElement.style.transform = `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
+    // двигаем карту визуально
+    draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
 
     // ищем слот под пальцем
     draggedElement.style.pointerEvents = 'none';
     const elUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
-    draggedElement.style.pointerEvents = 'auto';
+    draggedElement.style.pointerEvents = '';
     const candidate = elUnderFinger && elUnderFinger.closest
       ? elUnderFinger.closest('.foundation-slot, .tableau-slot, .waste, .card')
       : null;
@@ -624,9 +614,8 @@
     const touchEndTime = Date.now();
     const touchDuration = touchEndTime - touchStartTime;
 
-    // Сбрасываем визуальный сдвиг и pointer-events
+    // Сбрасываем визуальный сдвиг
     draggedElement.style.transform = '';
-    draggedElement.style.pointerEvents = '';
 
     if (touchDuration < 200) {
       // короткий тап — автоход как раньше
@@ -657,7 +646,6 @@
 
     // очистка
     if (hoverTarget && hoverTarget.classList) hoverTarget.classList.remove('drag-over');
-    if (draggedElement && draggedElement.classList) draggedElement.classList.remove('dragging');
     hoverTarget = null;
     draggedElement = null;
     gameState.draggedCards = [];
