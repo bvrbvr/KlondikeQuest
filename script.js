@@ -47,10 +47,21 @@ if (window.Telegram && window.Telegram.WebApp) {
 	}
 }
 
-// Флаг: использовать ли нативный HTML5 Drag&Drop (отключаем на тач-устройствах)
-const USE_NATIVE_DND = (function() {
-    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    return !isTouchDevice;
+// Флаг: использовать ли нативный HTML5 Drag&Drop (включаем на десктопах, даже если есть touch)
+const USE_NATIVE_DND = (function () {
+    const mql = typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null;
+    const hasFinePointer = mql ? mql('(any-pointer: fine)').matches : true;
+    const hasCoarsePointer = mql ? mql('(pointer: coarse)').matches : false;
+    const ua = navigator.userAgent || '';
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    const tgPlatform = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || '';
+    const isTelegramMobile = tgPlatform === 'android' || tgPlatform === 'ios';
+    // Запрещаем HTML5 DnD только на мобильных Telegram WebView
+    if (isTelegramMobile) return false;
+    // Если есть любой «тонкий» указатель (мышь/тачпад) — включаем DnD
+    if (hasFinePointer) return true;
+    // Фолбек: отключаем на явных мобильных UA или при единственном грубом указателе
+    return !(isMobileUA || hasCoarsePointer);
 })();
 
 // Константы игры
@@ -529,7 +540,11 @@ function handleDrop(e) {
     
     if (!gameState.draggedCards.length) return;
     
-    const target = e.target.closest('.foundation-slot, .tableau-slot, .waste');
+    // Разрешаем дроп и на карты — берём их родительский слот
+    let target = e.target.closest('.foundation-slot, .tableau-slot, .waste, .card');
+    if (target && target.classList && target.classList.contains('card')) {
+        target = target.closest('.foundation-slot, .tableau-slot, .waste');
+    }
     if (!target) return;
     
     const targetLocation = getSlotLocation(target);
