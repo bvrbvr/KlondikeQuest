@@ -276,11 +276,12 @@ body.dragging {
 
 /* Стили для разных колод */
 [data-deck="blue"] .card.face-down {
-  background: linear-gradient(45deg, #1976d2, #1565c0);
+  background: linear-gradient(45deg, #2c3e50, #34495e);
 }
 [data-deck="blue"] .card.face-down::before {
   content: "♠";
-  color: #ffffff;
+  color: var(--text-color);
+  opacity: 0.85;
 }
 
 [data-deck="red"] .card.face-down {
