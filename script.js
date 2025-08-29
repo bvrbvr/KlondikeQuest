@@ -588,6 +588,9 @@
       gameState.draggedCards = getCardSequence(card);
       gameState.dragSource = getCardLocation(card);
       lockScroll();
+      // Добавляем классы для блокировки прокрутки
+      document.documentElement.classList.add('dragging');
+      document.body.classList.add('dragging');
       console.log('Started dragging:', card);
     }
   }, { passive: false });
@@ -660,6 +663,9 @@
 
     // очистка
     if (hoverTarget && hoverTarget.classList) hoverTarget.classList.remove('drag-over');
+    // Убираем классы блокировки прокрутки
+    document.documentElement.classList.remove('dragging');
+    document.body.classList.remove('dragging');
     hoverTarget = null;
     draggedElement = null;
     gameState.draggedCards = [];
