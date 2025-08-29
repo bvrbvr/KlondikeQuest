@@ -264,7 +264,7 @@ body.dragging {
   padding:3px; font-size:var(--font-s); font-weight:800;
   cursor:grab; position:relative; user-select:none;
   box-shadow:0 2px 4px rgba(0,0,0,.08);
-  transition:transform .2s, opacity .2s; touch-action:none;
+  transition:transform .2s, opacity .2s; touch-action:manipulation;
 }
 .card:active{cursor:grabbing}
 .card.face-down{background:linear-gradient(45deg,#2c3e50,#34495e); color:transparent}
@@ -327,7 +327,6 @@ html.dragging, body.dragging {
 /* Дополнительные стили для перетаскивания */
 .card.dragging {
   box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
-  pointer-events: none !important;
 }
 
 /* Убеждаемся, что перетаскиваемые карты всегда поверх всего */
@@ -340,6 +339,7 @@ html.dragging, body.dragging {
 .card.dragging {
   z-index: 10000 !important;
   position: relative !important;
+  touch-action: manipulation !important;
 }
 
 /* Дополнительная защита от перекрытия другими элементами */

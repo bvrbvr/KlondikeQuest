@@ -573,7 +573,8 @@
 
   document.addEventListener('touchstart', (e) => {
     const card = e.target.closest('.card');
-    if (card && card.draggable) {
+    console.log('Touch start on:', card, 'face-down:', card?.classList.contains('face-down'));
+    if (card && !card.classList.contains('face-down')) { // Проверяем отсутствие класса face-down
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
@@ -584,6 +585,7 @@
       gameState.draggedCards = getCardSequence(card);
       gameState.dragSource = getCardLocation(card);
       lockScroll();
+      console.log('Started dragging card:', card);
     }
   }, { passive: true });
 
@@ -601,7 +603,7 @@
     // ищем слот под пальцем
     draggedElement.style.pointerEvents = 'none';
     const elUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
-    draggedElement.style.pointerEvents = '';
+    draggedElement.style.pointerEvents = 'auto';
     const candidate = elUnderFinger && elUnderFinger.closest
       ? elUnderFinger.closest('.foundation-slot, .tableau-slot, .waste, .card')
       : null;
@@ -622,8 +624,9 @@
     const touchEndTime = Date.now();
     const touchDuration = touchEndTime - touchStartTime;
 
-    // Сбрасываем визуальный сдвиг
+    // Сбрасываем визуальный сдвиг и pointer-events
     draggedElement.style.transform = '';
+    draggedElement.style.pointerEvents = '';
 
     if (touchDuration < 200) {
       // короткий тап — автоход как раньше
