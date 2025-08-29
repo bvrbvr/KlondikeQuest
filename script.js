@@ -478,7 +478,7 @@
           btn.id = 'deck-toggle-btn';
           btn.className = 'btn btn-secondary';
           const deck = document.documentElement.getAttribute('data-deck') || 'blue';
-          btn.textContent = (deck === 'red' ? 'Красная' : 'Синяя') + ' колода';
+          btn.textContent = deck === 'red' ? 'Красная' : 'Синяя';
           controls.appendChild(btn);
           elements.deckToggleBtn = btn;
       }
@@ -1470,7 +1470,7 @@
   function updateDeckToggleLabel() {
       if (!elements.deckToggleBtn) return;
       const current = document.documentElement.getAttribute('data-deck') || 'blue';
-      elements.deckToggleBtn.textContent = (current === 'red' ? 'Красная' : 'Синяя') + ' колода';
+      elements.deckToggleBtn.textContent = current === 'red' ? 'Красная' : 'Синяя';
   }
   
   function safeStorageGet(key) {

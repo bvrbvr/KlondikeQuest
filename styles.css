@@ -406,7 +406,7 @@ html.dragging, body.dragging {
   }
   .btn {
     min-width: 60px;
-    max-width: 100px;
+    max-width: 110px;
     font-size: 11px;
     padding: 6px 8px;
   }
