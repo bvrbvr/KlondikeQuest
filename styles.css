@@ -161,11 +161,12 @@ body.dragging {
 .timer-label,.moves-label{font-weight:600;opacity:.9}
 .timer-value,.moves-value{font-size:var(--font-m);font-weight:800}
 
-.game-controls{display:flex;gap:6px;flex-wrap:wrap}
+.game-controls{display:flex;gap:6px;flex-wrap:wrap; align-items:center}
 .btn{
   padding:7px 12px;border:0;border-radius:8px;
-  font-size:12px;font-weight:600;min-height:36px;min-width:72px;
+  font-size:12px;font-weight:600;min-height:36px;min-width:72px;max-width:120px;
   cursor:pointer;transition:opacity .2s,transform .2s; touch-action:manipulation;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-color)}
 .btn-secondary{background:var(--btn-secondary-bg);color:var(--btn-secondary-color)}
@@ -398,6 +399,17 @@ html.dragging, body.dragging {
 @media (max-width:768px){
   .game-header{flex-wrap:wrap; align-items:flex-start}
   /* фикс-колонки уже гарантируют ширину — менять грид не нужно */
+  
+  /* Улучшенные стили для кнопок на мобильных */
+  .game-controls {
+    gap: 4px;
+  }
+  .btn {
+    min-width: 60px;
+    max-width: 100px;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
 }
 
 /* ============ Extras (как было) ============ */

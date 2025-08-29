@@ -469,7 +469,7 @@
           btn.id = 'theme-toggle-btn';
           btn.className = 'btn btn-secondary';
           const current = document.documentElement.getAttribute('data-theme') || 'light';
-          btn.textContent = 'Тема: ' + (current === 'dark' ? 'Тёмная' : 'Светлая');
+          btn.textContent = (current === 'dark' ? 'Тёмная' : 'Светлая') + ' тема';
           controls.appendChild(btn);
           elements.themeToggleBtn = btn;
       }
@@ -478,7 +478,7 @@
           btn.id = 'deck-toggle-btn';
           btn.className = 'btn btn-secondary';
           const deck = document.documentElement.getAttribute('data-deck') || 'blue';
-          btn.textContent = 'Колода: ' + (deck === 'red' ? 'Красная' : 'Синяя');
+          btn.textContent = (deck === 'red' ? 'Красная' : 'Синяя') + ' колода';
           controls.appendChild(btn);
           elements.deckToggleBtn = btn;
       }
@@ -1464,13 +1464,13 @@
   function updateThemeToggleLabel() {
       if (!elements.themeToggleBtn) return;
       const current = document.documentElement.getAttribute('data-theme') || 'light';
-      elements.themeToggleBtn.textContent = 'Тема: ' + (current === 'dark' ? 'Тёмная' : 'Светлая');
+      elements.themeToggleBtn.textContent = (current === 'dark' ? 'Тёмная' : 'Светлая') + ' тема';
   }
   
   function updateDeckToggleLabel() {
       if (!elements.deckToggleBtn) return;
       const current = document.documentElement.getAttribute('data-deck') || 'blue';
-      elements.deckToggleBtn.textContent = 'Колода: ' + (current === 'red' ? 'Красная' : 'Синяя');
+      elements.deckToggleBtn.textContent = (current === 'red' ? 'Красная' : 'Синяя') + ' колода';
   }
   
   function safeStorageGet(key) {
