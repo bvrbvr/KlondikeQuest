@@ -264,7 +264,7 @@ body.dragging {
   padding:3px; font-size:var(--font-s); font-weight:800;
   cursor:grab; position:relative; user-select:none;
   box-shadow:0 2px 4px rgba(0,0,0,.08);
-  transition:transform .2s, opacity .2s; touch-action:manipulation;
+  transition:transform .2s, opacity .2s; touch-action:pan-x pan-y;
 }
 .card:active{cursor:grabbing}
 .card.face-down{background:linear-gradient(45deg,#2c3e50,#34495e); color:transparent}
@@ -321,6 +321,14 @@ html.dragging, body.dragging {
     transform: scale(1.05) rotate(2deg) !important;
     z-index: 10000 !important;
     position: relative !important;
+  }
+  
+  /* Специальные стили для мобильных карт */
+  .card {
+    touch-action: pan-x pan-y !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
   }
 }
 

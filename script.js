@@ -350,7 +350,13 @@
       cardElement.dataset.suit = card.suit;
       cardElement.dataset.value = card.value;
       // Разрешаем перетаскивать любую открытую карту (для переноса последовательностей)
-      cardElement.draggable = card.faceUp; 
+      cardElement.draggable = card.faceUp;
+      // Принудительно устанавливаем draggable для мобильных устройств
+      if (card.faceUp) {
+          cardElement.setAttribute('draggable', 'true');
+      } else {
+          cardElement.setAttribute('draggable', 'false');
+      } 
       
       if (card.faceUp) {
           cardElement.innerHTML = `
@@ -568,7 +574,12 @@
 
   document.addEventListener('touchstart', (e) => {
     const card = e.target.closest('.card');
-    if (card && card.draggable) {
+    console.log('Touch start:', card, 'draggable:', card?.draggable, 'faceUp:', !card?.classList.contains('face-down'));
+    
+    // В мобильном Telegram WebView проверяем и draggable, и faceUp
+    if (card && (card.draggable || !card.classList.contains('face-down'))) {
+      // Предотвращаем стандартное поведение для мобильных устройств
+      e.preventDefault();
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
@@ -577,12 +588,14 @@
       gameState.draggedCards = getCardSequence(card);
       gameState.dragSource = getCardLocation(card);
       lockScroll();
+      console.log('Started dragging:', card);
     }
-  }, { passive: true });
+  }, { passive: false });
 
   document.addEventListener('touchmove', (e) => {
     if (!draggedElement) return;
     e.preventDefault(); // критично: не даём странице прокручиваться
+    console.log('Touch move:', draggedElement);
     const touch = e.touches[0];
     const deltaX = touch.clientX - touchStartX;
     const deltaY = touch.clientY - touchStartY;
@@ -610,6 +623,7 @@
 
   document.addEventListener('touchend', (e) => {
     if (!draggedElement) return;
+    console.log('Touch end:', draggedElement);
 
     const touchEndTime = Date.now();
     const touchDuration = touchEndTime - touchStartTime;
