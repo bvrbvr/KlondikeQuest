@@ -153,7 +153,7 @@ body.dragging {
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding:8px calc(10px + var(--csafe-right)) 6px calc(10px + var(--csafe-left));
   min-height:var(--ui-header-h);
-  background:var(--bg-color);
+  background: transparent;
   margin-bottom: var(--header-gap);   /* ↓ воздух до foundation */
 }
 .game-info{display:flex;gap:10px;font-size:10px}
@@ -272,6 +272,23 @@ body.dragging {
   content:"♠"; position:absolute; top:50%; left:50%;
   transform:translate(-50%,-50%); font-size:calc(var(--font-m) + 6px);
   color:var(--text-color); opacity:.85;
+}
+
+/* Стили для разных колод */
+[data-deck="blue"] .card.face-down {
+  background: linear-gradient(45deg, #1976d2, #1565c0);
+}
+[data-deck="blue"] .card.face-down::before {
+  content: "♠";
+  color: #ffffff;
+}
+
+[data-deck="red"] .card.face-down {
+  background: linear-gradient(45deg, #d32f2f, #b71c1c);
+}
+[data-deck="red"] .card.face-down::before {
+  content: "♥";
+  color: #ffffff;
 }
 .card.red{color:var(--red-suit)} .card.black{color:var(--black-suit)}
 .card-top,.card-bottom{display:flex;justify-content:space-between;align-items:flex-start}
