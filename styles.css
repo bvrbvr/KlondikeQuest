@@ -284,7 +284,7 @@ body.dragging {
 .tableau-slot .card:last-child{margin-bottom:0}
 
 /* ============ Drag & Drop ============ */
-.card.dragging{opacity:.9; transform:scale(1.03) rotate(1.5deg); z-index:1000}
+.card.dragging{opacity:.9; transform:scale(1.03) rotate(1.5deg); z-index:9999 !important; position: relative;}
 .foundation-slot.drag-over,.tableau-slot.drag-over,.card.drag-over{
   border-color:var(--btn-primary-bg); 
   background-color:rgba(0,123,255,.15);
@@ -320,7 +320,31 @@ html.dragging, body.dragging {
     opacity: 0.8 !important;
     transform: scale(1.05) rotate(2deg) !important;
     z-index: 9999 !important;
+    position: relative !important;
   }
+}
+
+/* Дополнительные стили для перетаскивания */
+.card.dragging {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+  pointer-events: none !important;
+}
+
+/* Убеждаемся, что перетаскиваемые карты всегда поверх всего */
+.card.dragging,
+.card.dragging * {
+  z-index: 9999 !important;
+}
+
+/* Перетаскиваемые карты должны быть поверх модальных окон и других элементов */
+.card.dragging {
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+/* Дополнительная защита от перекрытия другими элементами */
+.game-container .card.dragging {
+  z-index: 10001 !important;
 }
 
 /* ============ Modal & misc ============ */

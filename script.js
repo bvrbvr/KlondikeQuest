@@ -398,6 +398,8 @@
   
   // Настройка обработчиков событий
   function setupEventListeners() {
+      /* injectMobileTouchStyles disabled */
+
       // Кнопки управления
       elements.newGameBtn.addEventListener('click', newGame);
       elements.undoBtn.addEventListener('click', undoMove);
@@ -540,8 +542,13 @@
   
   // Очистка состояния перетаскивания
   function clearDragState() {
+      // Очищаем все элементы с классами dragging и drag-over
       document.querySelectorAll('.dragging, .drag-over').forEach(el => {
           el.classList.remove('dragging', 'drag-over');
+          // Сбрасываем любые inline стили transform
+          if (el.style.transform) {
+              el.style.transform = '';
+          }
       });
       gameState.draggedCards = [];
       gameState.dragSource = null;
@@ -549,75 +556,112 @@
   
   // Настройка Touch событий
   function setupTouchEvents() {
-      let touchStartX, touchStartY, touchStartTime;
-      let draggedElement = null;
-      
-      document.addEventListener('touchstart', (e) => {
-          const card = e.target.closest('.card');
-          if (card && card.draggable) {
-              touchStartX = e.touches[0].clientX;
-              touchStartY = e.touches[0].clientY;
-              touchStartTime = Date.now();
-              draggedElement = card;
-              // elevate dragged card above other layers
-              try {
-                  draggedElement.classList.add('dragging');
-                  draggedElement.dataset.prevZ = draggedElement.style.zIndex || '';
-                  draggedElement.dataset.prevPos = draggedElement.style.position || '';
-                  draggedElement.dataset.prevPe = draggedElement.style.pointerEvents || '';
-                  draggedElement.style.zIndex = '999999';
-                  draggedElement.style.position = 'relative';
-                  draggedElement.style.pointerEvents = 'none';
-              } catch (err) { console.warn('elevate failed', err); }
+  let touchStartX, touchStartY, touchStartTime;
+  let draggedElement = null;
+  let hoverTarget = null;
+  let scrollLocked = false;
 
-          }
-      });
-      
-      document.addEventListener('touchmove', (e) => {
-          if (draggedElement) {
-              e.preventDefault();
-              const touch = e.touches[0];
-              const deltaX = touch.clientX - touchStartX;
-              const deltaY = touch.clientY - touchStartY;
-              
-              if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-                  draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-              }
-          }
-      });
-      
-      document.addEventListener('touchend', (e) => {
-          if (draggedElement) {
-              const touchEndTime = Date.now();
-              const touchDuration = touchEndTime - touchStartTime;
-              
-              if (touchDuration < 200) {
-                  // Короткое касание - попытка автоматического перемещения
-                  const target = findBestTarget(draggedElement);
-                  if (target) {
-                      const cards = getCardSequence(draggedElement);
-                      const source = getCardLocation(draggedElement);
-                      moveCards(cards, source, target);
-                  }
-              }
-              
-              // restore original layering
-              try {
-                  draggedElement.style.zIndex = draggedElement.dataset.prevZ || '';
-                  draggedElement.style.position = draggedElement.dataset.prevPos || '';
-                  draggedElement.style.pointerEvents = draggedElement.dataset.prevPe || '';
-                  draggedElement.classList.remove('dragging');
-                  delete draggedElement.dataset.prevZ;
-                  delete draggedElement.dataset.prevPos;
-                  delete draggedElement.dataset.prevPe;
-              } catch (err) { console.warn('restore layering failed', err); }
-              
-              draggedElement.style.transform = '';
+  const lockScroll = () => {
+    if (scrollLocked) return;
+    scrollLocked = true;
+    document.body.style.overflow = 'hidden';
+  };
+  const unlockScroll = () => {
+    scrollLocked = false;
+    document.body.style.overflow = '';
+  };
 
-              draggedElement = null;
-          }
-      });
-  }
+  document.addEventListener('touchstart', (e) => {
+    const card = e.target.closest('.card');
+    if (card && card.draggable) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+      draggedElement = card;
+      // Добавляем класс dragging для визуального эффекта
+      card.classList.add('dragging');
+      // Сохраняем последовательность как при desktop drag
+      gameState.draggedCards = getCardSequence(card);
+      gameState.dragSource = getCardLocation(card);
+      lockScroll();
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!draggedElement) return;
+    e.preventDefault(); // критично: не даём странице прокручиваться
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+
+    // двигаем карту визуально, объединяя с CSS transform
+    const baseTransform = 'scale(1.03) rotate(1.5deg)';
+    draggedElement.style.transform = `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
+
+    // ищем слот под пальцем
+    draggedElement.style.pointerEvents = 'none';
+    const elUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
+    draggedElement.style.pointerEvents = '';
+    const candidate = elUnderFinger && elUnderFinger.closest
+      ? elUnderFinger.closest('.foundation-slot, .tableau-slot, .waste, .card')
+      : null;
+    const slot = candidate && candidate.classList && candidate.classList.contains('card')
+      ? candidate.closest('.foundation-slot, .tableau-slot, .waste')
+      : candidate;
+
+    if (hoverTarget !== slot) {
+      if (hoverTarget && hoverTarget.classList) hoverTarget.classList.remove('drag-over');
+      hoverTarget = slot;
+      if (hoverTarget && hoverTarget.classList) hoverTarget.classList.add('drag-over');
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', (e) => {
+    if (!draggedElement) return;
+
+    const touchEndTime = Date.now();
+    const touchDuration = touchEndTime - touchStartTime;
+
+    // Сбрасываем визуальный сдвиг
+    draggedElement.style.transform = '';
+
+    if (touchDuration < 200) {
+      // короткий тап — автоход как раньше
+      const target = findBestTarget(draggedElement);
+      if (target) {
+        const cards = getCardSequence(draggedElement);
+        const source = getCardLocation(draggedElement);
+        moveCards(cards, source, target);
+      }
+    } else {
+      // полноценный drop на слот под пальцем
+      const targetSlot = hoverTarget;
+      let targetLocation = null;
+      if (targetSlot) {
+        targetLocation = getSlotLocation(targetSlot);
+        if (!targetLocation) {
+          // вдруг попали по карте внутри слота
+          const innerCard = targetSlot.querySelector && targetSlot.querySelector('.card');
+          if (innerCard) targetLocation = getSlotLocation(innerCard);
+        }
+      }
+      if (targetLocation && gameState.draggedCards && gameState.draggedCards.length) {
+        if (canMoveCards(gameState.draggedCards, targetLocation)) {
+          moveCards(gameState.draggedCards, gameState.dragSource, targetLocation);
+        }
+      }
+    }
+
+    // очистка
+    if (hoverTarget && hoverTarget.classList) hoverTarget.classList.remove('drag-over');
+    if (draggedElement && draggedElement.classList) draggedElement.classList.remove('dragging');
+    hoverTarget = null;
+    draggedElement = null;
+    gameState.draggedCards = [];
+    gameState.dragSource = null;
+    unlockScroll();
+  }, { passive: false });
+}
   
   // Получение последовательности карт
   function getCardSequence(cardElement) {
@@ -1722,3 +1766,32 @@
   // rippleStyle.textContent = `...`;
   // document.head.appendChild(rippleStyle);
   
+
+function injectMobileTouchStyles() { return; /* no-op */
+
+  if (document.getElementById('mobile-touch-style')) return;
+  const style = document.createElement('style');
+  style.id = 'mobile-touch-style';
+  style.textContent = `
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+.game-container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: calc(var(--tg-vh, 100dvh) - var(--tg-csafe-top, 0px) - var(--tg-csafe-bottom, 0px));
+  padding-top: var(--tg-csafe-top, 0px);
+  padding-bottom: var(--tg-csafe-bottom, 0px);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.card, .tableau-slot, .foundation-slot, #waste {
+  touch-action: none;
+}`;
+  document.head.appendChild(style);
+}
