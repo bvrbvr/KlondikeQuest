@@ -466,14 +466,13 @@ function setupEventListeners() {
     // Stock клик
     elements.stock.addEventListener('click', drawFromStock);
     
-    // Drag and Drop
-    setupDragAndDrop();
-    
-    // Touch события для мобильных устройств
-    setupTouchEvents();
-    // Pointer Events для Telegram WebView (iOS/Android) — надёжнее, чем touch в некоторых сборках
-    if (IS_TELEGRAM_MOBILE) {
+    // Ввод: выбираем ОДИН вариант, чтобы не конфликтовали обработчики
+    if (USE_NATIVE_DND) {
+        setupDragAndDrop();
+    } else if (IS_TELEGRAM_MOBILE && 'PointerEvent' in window) {
         setupPointerEvents();
+    } else {
+        setupTouchEvents();
     }
     
     // Двойной клик для тузов
