@@ -587,254 +587,106 @@ function clearDragState() {
     console.log('Drag state cleared');
 }
 
-// Настройка Touch событий
+// Настройка Touch событий (упрощённая версия как в старой рабочей версии)
 function setupTouchEvents() {
     let touchStartX, touchStartY, touchStartTime;
     let draggedElement = null;
-    let isDragging = false;
-  
-    const addNoScroll = () => {
-      document.documentElement.classList.add('dragging');
-      document.body.classList.add('dragging');
-      document.querySelector('.game-container')?.classList.add('dragging');
-      document.querySelector('.game-board')?.classList.add('dragging');
-    };
-    const rmNoScroll = () => {
-      document.documentElement.classList.remove('dragging');
-      document.body.classList.remove('dragging');
-      document.querySelector('.game-container')?.classList.remove('dragging');
-      document.querySelector('.game-board')?.classList.remove('dragging');
-    };
-  
-    // Всегда запрещаем прокрутку, если идёт наш драг (важно: passive:false)
-    document.addEventListener('touchmove', (e) => {
-      if (draggedElement) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    }, { passive: false });
-  
-    // Начало жеста: сразу блокируем скролл и помечаем карту
+    
     document.addEventListener('touchstart', (e) => {
-      const card = e.target.closest('.card');
-      const isFaceUp = card && !card.classList.contains('face-down');
-      if (card && isFaceUp) {
-        addNoScroll();
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        touchStartTime = Date.now();
-        draggedElement = card;
-        isDragging = false;
-        // критично для iOS/Telegram — не даём начаться системному скроллу
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }, { passive: false });
-  
-    // Движение пальца: после порога включаем drag и таскаем карту трансформом
+        const card = e.target.closest('.card');
+        if (card && card.draggable) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+            draggedElement = card;
+        }
+    });
+    
     document.addEventListener('touchmove', (e) => {
-      if (!draggedElement) return;
-  
-      const touch = e.touches[0];
-      const deltaX = touch.clientX - touchStartX;
-      const deltaY = touch.clientY - touchStartY;
-  
-      if (!isDragging && (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12)) {
-        isDragging = true;
-        draggedElement.classList.add('dragging');
-      }
-  
-      if (isDragging) {
-        draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-      }
-  
-      // не даём WebView прокручиваться на каждом move
-      e.preventDefault();
-      e.stopPropagation();
-    }, { passive: false });
-  
-    // Завершение: определяем цель под пальцем и двигаем карты
+        if (draggedElement) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            
+            if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+                draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            }
+        }
+    });
+    
     document.addEventListener('touchend', (e) => {
-      if (!draggedElement) return;
-  
-      const touchEndTime = Date.now();
-      const touchDuration = touchEndTime - touchStartTime;
-  
-      if (isDragging) {
-        const touch = e.changedTouches[0];
-  
-        // временно убираем карту из hit-test, чтобы elementFromPoint нашёл слот под ней
-        const originalTransform = draggedElement.style.transform;
-        const originalPointer = draggedElement.style.pointerEvents;
-        const originalVisibility = draggedElement.style.visibility;
-  
-        draggedElement.style.transform = '';
-        draggedElement.style.pointerEvents = 'none';
-        draggedElement.style.visibility = 'hidden';
-  
-        const elBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const target = elBelow ? elBelow.closest('.foundation-slot, .tableau-slot, .waste, .card') : null;
-  
-        // восстанавливаем
-        draggedElement.style.transform = originalTransform;
-        draggedElement.style.pointerEvents = originalPointer || '';
-        draggedElement.style.visibility = originalVisibility || '';
-  
-        if (target) {
-          // если попали в карту — берём её слот
-          const targetSlot = target.classList.contains('card')
-            ? target.closest('.foundation-slot, .tableau-slot, .waste')
-            : target;
-  
-          const targetLocation = targetSlot ? getSlotLocation(targetSlot) : null;
-          const cards = getCardSequence(draggedElement);
-          const source = getCardLocation(draggedElement);
-  
-          if (targetLocation && canMoveCards(cards, targetLocation)) {
-            moveCards(cards, source, targetLocation);
-          }
+        if (draggedElement) {
+            const touchEndTime = Date.now();
+            const touchDuration = touchEndTime - touchStartTime;
+            
+            if (touchDuration < 200) {
+                // Короткое касание - попытка автоматического перемещения
+                const target = findBestTarget(draggedElement);
+                if (target) {
+                    const cards = getCardSequence(draggedElement);
+                    const source = getCardLocation(draggedElement);
+                    moveCards(cards, source, target);
+                }
+            }
+            
+            draggedElement.style.transform = '';
+            draggedElement = null;
         }
-      } else if (touchDuration < 250) {
-        // короткое касание — автоперемещение (как было)
-        const target = findBestTarget(draggedElement);
-        if (target) {
-          const cards = getCardSequence(draggedElement);
-          const source = getCardLocation(draggedElement);
-          moveCards(cards, source, target);
-        }
-      }
+    });
+}
   
-      // очистка состояния
-      draggedElement.style.transform = '';
-      draggedElement.classList.remove('dragging');
-      draggedElement = null;
-      isDragging = false;
-      rmNoScroll();
-  
-      e.preventDefault();
-      e.stopPropagation();
-    }, { passive: false });
-  
-    // На всякий пожарный
-    document.addEventListener('touchcancel', () => {
-      if (draggedElement) {
-        draggedElement.style.transform = '';
-        draggedElement.classList.remove('dragging');
-        draggedElement = null;
-      }
-      isDragging = false;
-      rmNoScroll();
-    }, { passive: false });
-  }
-  
-// Pointer Events fallback для Telegram WebView (iOS/Android)
+// Pointer Events fallback для Telegram WebView (iOS/Android) - упрощённая версия
 function setupPointerEvents() {
     let startX, startY, startTime;
     let draggedElement = null;
-    let isDragging = false;
-
-    const addNoScroll = () => {
-      document.documentElement.classList.add('dragging');
-      document.body.classList.add('dragging');
-      document.querySelector('.game-container')?.classList.add('dragging');
-      document.querySelector('.game-board')?.classList.add('dragging');
-    };
-    const rmNoScroll = () => {
-      document.documentElement.classList.remove('dragging');
-      document.body.classList.remove('dragging');
-      document.querySelector('.game-container')?.classList.remove('dragging');
-      document.querySelector('.game-board')?.classList.remove('dragging');
-    };
-
-    document.addEventListener('pointermove', (e) => {
-      if (draggedElement && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    }, { passive: false });
-
+    
     document.addEventListener('pointerdown', (e) => {
-      if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
-      const card = e.target && e.target.closest ? e.target.closest('.card') : null;
-      const isFaceUp = card && !card.classList.contains('face-down');
-      if (card && isFaceUp) {
-        addNoScroll();
-        startX = e.clientX;
-        startY = e.clientY;
-        startTime = Date.now();
-        draggedElement = card;
-        isDragging = false;
-        try { card.setPointerCapture(e.pointerId); } catch(_) {}
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }, { passive: false });
-
+        if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
+        const card = e.target && e.target.closest ? e.target.closest('.card') : null;
+        if (card && card.draggable) {
+            startX = e.clientX;
+            startY = e.clientY;
+            startTime = Date.now();
+            draggedElement = card;
+        }
+    });
+    
     document.addEventListener('pointermove', (e) => {
-      if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
-      if (!draggedElement) return;
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
-      if (!isDragging && (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12)) {
-        isDragging = true;
-        draggedElement.classList.add('dragging');
-      }
-      if (isDragging) {
-        draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-    }, { passive: false });
-
+        if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
+        if (draggedElement) {
+            e.preventDefault();
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+                draggedElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            }
+        }
+    });
+    
     function finishPointer(e) {
-      if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
-      if (!draggedElement) return;
-      const duration = Date.now() - startTime;
-      if (isDragging) {
-        const originalTransform = draggedElement.style.transform;
-        const originalPointer = draggedElement.style.pointerEvents;
-        const originalVisibility = draggedElement.style.visibility;
-        draggedElement.style.transform = '';
-        draggedElement.style.pointerEvents = 'none';
-        draggedElement.style.visibility = 'hidden';
-        const elBelow = document.elementFromPoint(e.clientX, e.clientY);
-        let target = elBelow ? elBelow.closest('.foundation-slot, .tableau-slot, .waste, .card') : null;
-        if (target && target.classList && target.classList.contains('card')) {
-          target = target.closest('.foundation-slot, .tableau-slot, .waste');
+        if (!(e.pointerType === 'touch' || e.pointerType === 'pen')) return;
+        if (draggedElement) {
+            const duration = Date.now() - startTime;
+            
+            if (duration < 200) {
+                // Короткое касание - попытка автоматического перемещения
+                const target = findBestTarget(draggedElement);
+                if (target) {
+                    const cards = getCardSequence(draggedElement);
+                    const source = getCardLocation(draggedElement);
+                    moveCards(cards, source, target);
+                }
+            }
+            
+            draggedElement.style.transform = '';
+            draggedElement = null;
         }
-        draggedElement.style.transform = originalTransform;
-        draggedElement.style.pointerEvents = originalPointer || '';
-        draggedElement.style.visibility = originalVisibility || '';
-        if (target) {
-          const targetLocation = getSlotLocation(target);
-          const cards = getCardSequence(draggedElement);
-          const source = getCardLocation(draggedElement);
-          if (targetLocation && canMoveCards(cards, targetLocation)) {
-            moveCards(cards, source, targetLocation);
-          }
-        }
-      } else if (duration < 250) {
-        const target = findBestTarget(draggedElement);
-        if (target) {
-          const cards = getCardSequence(draggedElement);
-          const source = getCardLocation(draggedElement);
-          moveCards(cards, source, target);
-        }
-      }
-      draggedElement.style.transform = '';
-      draggedElement.classList.remove('dragging');
-      try { draggedElement.releasePointerCapture(e.pointerId); } catch(_) {}
-      draggedElement = null;
-      isDragging = false;
-      rmNoScroll();
-      e.preventDefault();
-      e.stopPropagation();
     }
 
-    document.addEventListener('pointerup', finishPointer, { passive: false });
-    document.addEventListener('pointercancel', finishPointer, { passive: false });
+    document.addEventListener('pointerup', finishPointer);
+    document.addEventListener('pointercancel', finishPointer);
 }
 
 // Получение последовательности карт
