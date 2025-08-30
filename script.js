@@ -144,8 +144,42 @@
   
   // Сохранить псевдоним
   async function saveNickname() {
+      // Проверяем, что поле ввода существует
+      if (!elements.nicknameInput) {
+          console.error('Поле ввода псевдонима не найдено');
+          return;
+      }
+      
       const nickname = elements.nicknameInput.value.trim();
-      if (nickname.length >= 2 && nickname.length <= 20) {
+      
+      // Улучшенная валидация
+      if (!nickname) {
+          showErrorMessage('Введите псевдоним');
+          elements.nicknameInput.focus();
+          return;
+      }
+      
+      if (nickname.length < 2) {
+          showErrorMessage('Псевдоним должен содержать минимум 2 символа');
+          elements.nicknameInput.focus();
+          return;
+      }
+      
+      if (nickname.length > 20) {
+          showErrorMessage('Псевдоним не должен превышать 20 символов');
+          elements.nicknameInput.focus();
+          return;
+      }
+      
+      // Проверяем на допустимые символы
+      const validPattern = /^[a-zA-Zа-яА-Я0-9\s\-_]+$/;
+      if (!validPattern.test(nickname)) {
+          showErrorMessage('Псевдоним может содержать только буквы, цифры, пробелы, дефисы и подчеркивания');
+          elements.nicknameInput.focus();
+          return;
+      }
+      
+      try {
           // Отправляем псевдоним на сервер для регистрации
           const result = await registerUser(nickname);
           
@@ -153,42 +187,54 @@
               localStorage.setItem('userNickname', nickname);
               updateUserNicknameDisplay(nickname);
               hideNicknameModal();
+              showSuccessMessage('Псевдоним успешно сохранен!');
           } else if (result.error === 'nickname_taken') {
               // Показываем ошибку занятого псевдонима
-              if (tg && typeof tg.showPopup === 'function') {
-                  try {
-                      tg.showPopup({
-                          title: 'Псевдоним занят',
-                          message: result.message || 'Этот псевдоним уже занят другим игроком',
-                          buttons: [{ type: 'ok', text: 'Ок' }]
-                      });
-                  } catch (e) {
-                      alert(result.message || 'Этот псевдоним уже занят другим игроком');
-                  }
-              } else {
-                  alert(result.message || 'Этот псевдоним уже занят другим игроком');
-              }
+              showErrorMessage(result.message || 'Этот псевдоним уже занят другим игроком');
               // Очищаем поле ввода
               elements.nicknameInput.value = '';
               elements.nicknameInput.focus();
           } else {
               // Другие ошибки
-              if (tg && typeof tg.showPopup === 'function') {
-                  try {
-                      tg.showPopup({
-                          title: 'Ошибка',
-                          message: 'Не удалось сохранить псевдоним. Попробуйте еще раз.',
-                          buttons: [{ type: 'ok', text: 'Ок' }]
-                      });
-                  } catch (e) {
-                      alert('Не удалось сохранить псевдоним. Попробуйте еще раз.');
-                  }
-              } else {
-                  alert('Не удалось сохранить псевдоним. Попробуйте еще раз.');
-              }
+              showErrorMessage('Не удалось сохранить псевдоним. Проверьте подключение к интернету и попробуйте еще раз.');
+          }
+      } catch (error) {
+          console.error('Ошибка при сохранении псевдонима:', error);
+          showErrorMessage('Произошла ошибка при сохранении. Попробуйте еще раз.');
+      }
+  }
+  
+  // Показать сообщение об ошибке
+  function showErrorMessage(message) {
+      if (tg && typeof tg.showPopup === 'function') {
+          try {
+              tg.showPopup({
+                  title: 'Ошибка',
+                  message: message,
+                  buttons: [{ type: 'ok', text: 'Ок' }]
+              });
+          } catch (e) {
+              alert(message);
           }
       } else {
-          alert('Псевдоним должен содержать от 2 до 20 символов');
+          alert(message);
+      }
+  }
+  
+  // Показать сообщение об успехе
+  function showSuccessMessage(message) {
+      if (tg && typeof tg.showPopup === 'function') {
+          try {
+              tg.showPopup({
+                  title: 'Успешно',
+                  message: message,
+                  buttons: [{ type: 'ok', text: 'Ок' }]
+              });
+          } catch (e) {
+              alert(message);
+          }
+      } else {
+          alert(message);
       }
   }
   
@@ -207,9 +253,11 @@
           const username = tgUser?.username;
           
           if (!userId) {
-              console.log('Не удалось получить ID пользователя Telegram');
-              return { success: false, error: 'no_user_id' };
+              console.error('Не удалось получить ID пользователя Telegram');
+              return { success: false, error: 'no_user_id', message: 'Не удалось получить данные пользователя Telegram' };
           }
+          
+          console.log('Отправка запроса на регистрацию:', { userId, username, nickname });
           
           const response = await fetch(getApiBase() + '/register', {
               method: 'POST',
@@ -223,7 +271,15 @@
               })
           });
           
-          const data = await response.json();
+          console.log('Получен ответ от сервера:', response.status, response.statusText);
+          
+          let data;
+          try {
+              data = await response.json();
+          } catch (parseError) {
+              console.error('Ошибка при парсинге ответа сервера:', parseError);
+              return { success: false, error: 'parse_error', message: 'Ошибка при обработке ответа сервера' };
+          }
           
           if (response.ok) {
               console.log('Пользователь успешно зарегистрирован');
@@ -231,13 +287,22 @@
           } else if (response.status === 409 && data.error === 'nickname_taken') {
               console.log('Псевдоним занят:', data.message);
               return { success: false, error: 'nickname_taken', message: data.message };
+          } else if (response.status === 400) {
+              console.log('Ошибка валидации:', data.message);
+              return { success: false, error: 'validation_error', message: data.message || 'Некорректные данные' };
+          } else if (response.status >= 500) {
+              console.log('Ошибка сервера:', response.status);
+              return { success: false, error: 'server_error', message: 'Ошибка сервера. Попробуйте позже.' };
           } else {
-              console.log('Ошибка при регистрации пользователя');
-              return { success: false, error: 'registration_failed' };
+              console.log('Неизвестная ошибка при регистрации:', response.status, data);
+              return { success: false, error: 'unknown_error', message: 'Неизвестная ошибка при регистрации' };
           }
       } catch (error) {
-          console.log('Ошибка при регистрации:', error);
-          return { success: false, error: 'network_error' };
+          console.error('Ошибка сети при регистрации:', error);
+          if (error.name === 'TypeError' && error.message.includes('fetch')) {
+              return { success: false, error: 'network_error', message: 'Ошибка подключения к серверу. Проверьте интернет-соединение.' };
+          }
+          return { success: false, error: 'network_error', message: 'Ошибка сети при регистрации' };
       }
   }
   
@@ -431,7 +496,23 @@
       if (elements.nicknameInput) {
           elements.nicknameInput.addEventListener('keypress', (e) => {
               if (e.key === 'Enter') {
-                  saveNickname();
+                  e.preventDefault(); // Предотвращаем стандартное поведение
+                  const nickname = elements.nicknameInput.value.trim();
+                  if (nickname) {
+                      saveNickname();
+                  } else {
+                      showErrorMessage('Введите псевдоним');
+                      elements.nicknameInput.focus();
+                  }
+              }
+          });
+          
+          // Добавляем обработчик для предотвращения отправки пустого значения
+          elements.nicknameInput.addEventListener('input', (e) => {
+              // Убираем лишние пробелы в начале и конце
+              const value = e.target.value;
+              if (value !== value.trim()) {
+                  e.target.value = value.trim();
               }
           });
       }
