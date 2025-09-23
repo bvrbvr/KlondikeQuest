@@ -1589,67 +1589,7 @@
   function findBestMove() {
       const moves = [];
       
-      // 1. Проверяем тузы (приоритет 1) - самый высокий приоритет
-      for (let t = 0; t < 7; t++) {
-          const pile = gameState.tableau[t];
-          if (pile.length > 0) {
-              const topCard = pile[pile.length - 1];
-              if (topCard.faceUp && topCard.value === 'A') {
-                  for (let f = 0; f < 4; f++) {
-                      if (canMoveToFoundation(topCard, f)) {
-                          moves.push({
-                              priority: 1,
-                              source: { type: 'tableau', index: t },
-                              target: { type: 'foundation', index: f },
-                              card: topCard,
-                              description: `🎯 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation - это откроет карту под ней!`
-                          });
-                      }
-                  }
-              }
-          }
-      }
-      
-      // 2. Проверяем карты из waste в foundation (приоритет 2)
-      if (gameState.waste.length > 0) {
-          const topCard = gameState.waste[gameState.waste.length - 1];
-          for (let f = 0; f < 4; f++) {
-              if (canMoveToFoundation(topCard, f)) {
-                  moves.push({
-                      priority: 2,
-                      source: { type: 'waste', index: 0 },
-                      target: { type: 'foundation', index: f },
-                      card: topCard,
-                      description: `⭐ Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в foundation`
-                  });
-              }
-          }
-      }
-      
-      // 3. Проверяем королей для пустых tableau (приоритет 3)
-      for (let t = 0; t < 7; t++) {
-          if (gameState.tableau[t].length === 0) {
-              // Ищем королей в других tableau
-              for (let sourceT = 0; sourceT < 7; sourceT++) {
-                  if (sourceT === t) continue;
-                  const pile = gameState.tableau[sourceT];
-                  if (pile.length > 0) {
-                      const topCard = pile[pile.length - 1];
-                      if (topCard.faceUp && topCard.value === 'K') {
-                          moves.push({
-                              priority: 3,
-                              source: { type: 'tableau', index: sourceT },
-                              target: { type: 'tableau', index: t },
-                              card: topCard,
-                              description: `👑 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в пустой tableau - освободит место`
-                          });
-                      }
-                  }
-              }
-          }
-      }
-      
-      // 4. Проверяем ходы, которые откроют закрытые карты (приоритет 4)
+      // 1. Проверяем ходы, которые откроют закрытые карты (высший приоритет)
       for (let t = 0; t < 7; t++) {
           const pile = gameState.tableau[t];
           if (pile.length > 1) {
@@ -1661,11 +1601,12 @@
                       if (targetT === t) continue;
                       if (canMoveToTableau(topCard, targetT)) {
                           moves.push({
-                              priority: 4,
+                              priority: 1,
                               source: { type: 'tableau', index: t },
                               target: { type: 'tableau', index: targetT },
                               card: topCard,
-                              description: `🔓 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} - откроет карту под ней!`
+                              description: `🔓 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} - откроет новую карту!`,
+                              strategic_value: 100
                           });
                           break; // Нашли один ход, достаточно
                       }
@@ -1674,38 +1615,63 @@
           }
       }
       
-      // 5. Проверяем ходы из waste в tableau (приоритет 5)
-      if (gameState.waste.length > 0) {
-          const topCard = gameState.waste[gameState.waste.length - 1];
-          for (let t = 0; t < 7; t++) {
-              if (canMoveToTableau(topCard, t)) {
-                  moves.push({
-                      priority: 5,
-                      source: { type: 'waste', index: 0 },
-                      target: { type: 'tableau', index: t },
-                      card: topCard,
-                      description: `📄 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в tableau`
-                  });
+      // 2. Проверяем тузы и карты в foundation (высокий приоритет)
+      // 2.1 Тузы из tableau
+      for (let t = 0; t < 7; t++) {
+          const pile = gameState.tableau[t];
+          if (pile.length > 0) {
+              const topCard = pile[pile.length - 1];
+              if (topCard.faceUp && topCard.value === 'A') {
+                  for (let f = 0; f < 4; f++) {
+                      if (canMoveToFoundation(topCard, f)) {
+                          const hasCardBelow = pile.length > 1;
+                          const cardBelowFaceDown = hasCardBelow && !pile[pile.length - 2].faceUp;
+                          const strategicValue = cardBelowFaceDown ? 90 : 80;
+                          
+                          moves.push({
+                              priority: 2,
+                              source: { type: 'tableau', index: t },
+                              target: { type: 'foundation', index: f },
+                              card: topCard,
+                              description: cardBelowFaceDown 
+                                  ? `🎯 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation - откроет новую карту!`
+                                  : `🎯 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation - начните собирать масть!`,
+                              strategic_value: strategicValue
+                          });
+                      }
+                  }
               }
           }
       }
       
-      // 6. Проверяем обычные ходы в tableau (приоритет 6) - только если нет лучших вариантов
-      if (moves.length === 0) {
-          for (let t = 0; t < 7; t++) {
-              const pile = gameState.tableau[t];
-              if (pile.length > 0) {
-                  const topCard = pile[pile.length - 1];
-                  if (topCard.faceUp) {
-                      for (let targetT = 0; targetT < 7; targetT++) {
-                          if (targetT === t) continue;
-                          if (canMoveToTableau(topCard, targetT)) {
+      // 2.2 Карты из tableau в foundation (если это не блокирует важные ходы)
+      for (let t = 0; t < 7; t++) {
+          const pile = gameState.tableau[t];
+          if (pile.length > 0) {
+              const topCard = pile[pile.length - 1];
+              if (topCard.faceUp && topCard.value !== 'A') {
+                  for (let f = 0; f < 4; f++) {
+                      if (canMoveToFoundation(topCard, f)) {
+                          // Проверяем, не блокирует ли этот ход другие карты
+                          const cardValue = CARD_VALUES.indexOf(topCard.value);
+                          const isSafeToMove = cardValue <= 5; // Безопасно перемещать 2-6
+                          
+                          const hasCardBelow = pile.length > 1;
+                          const cardBelowFaceDown = hasCardBelow && !pile[pile.length - 2].faceUp;
+                          
+                          // Если ход открывает новую карту или безопасен - высокий приоритет
+                          if (cardBelowFaceDown || isSafeToMove) {
+                              const strategicValue = cardBelowFaceDown ? 85 : (10 - cardValue);
+                              
                               moves.push({
-                                  priority: 6,
+                                  priority: 2,
                                   source: { type: 'tableau', index: t },
-                                  target: { type: 'tableau', index: targetT },
+                                  target: { type: 'foundation', index: f },
                                   card: topCard,
-                                  description: `🔄 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в tableau`
+                                  description: cardBelowFaceDown 
+                                      ? `🎯 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation - откроет новую карту!`
+                                      : `⭐ Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} в foundation - продолжите собирать масть!`,
+                                  strategic_value: strategicValue
                               });
                           }
                       }
@@ -1714,8 +1680,230 @@
           }
       }
       
-      // Сортируем по приоритету и возвращаем лучший ход
-      moves.sort((a, b) => a.priority - b.priority);
+      // 3. Проверяем карты из waste в foundation
+      if (gameState.waste.length > 0) {
+          const topCard = gameState.waste[gameState.waste.length - 1];
+          for (let f = 0; f < 4; f++) {
+              if (canMoveToFoundation(topCard, f)) {
+                  const cardValue = CARD_VALUES.indexOf(topCard.value);
+                  const strategicValue = topCard.value === 'A' ? 75 : (70 - cardValue);
+                  
+                  moves.push({
+                      priority: 3,
+                      source: { type: 'waste', index: 0 },
+                      target: { type: 'foundation', index: f },
+                      card: topCard,
+                      description: topCard.value === 'A' 
+                          ? `⭐ Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в foundation - начните собирать масть!`
+                          : `⭐ Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в foundation`,
+                      strategic_value: strategicValue
+                  });
+              }
+          }
+      }
+      
+      // 4. Проверяем королей для пустых tableau
+      let emptyTableauCount = 0;
+      for (let t = 0; t < 7; t++) {
+          if (gameState.tableau[t].length === 0) {
+              emptyTableauCount++;
+              
+              // 4.1 Короли из waste
+              if (gameState.waste.length > 0) {
+                  const topCard = gameState.waste[gameState.waste.length - 1];
+                  if (topCard.value === 'K') {
+                      moves.push({
+                          priority: 4,
+                          source: { type: 'waste', index: 0 },
+                          target: { type: 'tableau', index: t },
+                          card: topCard,
+                          description: `👑 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в пустой tableau`,
+                          strategic_value: 65
+                      });
+                  }
+              }
+              
+              // 4.2 Короли из других tableau (только если это открывает карту или создает длинную последовательность)
+              for (let sourceT = 0; sourceT < 7; sourceT++) {
+                  if (sourceT === t) continue;
+                  const pile = gameState.tableau[sourceT];
+                  
+                  // Ищем первую открытую карту в стопке
+                  let firstFaceUpIndex = -1;
+                  for (let i = 0; i < pile.length; i++) {
+                      if (pile[i].faceUp) {
+                          firstFaceUpIndex = i;
+                          break;
+                      }
+                  }
+                  
+                  if (firstFaceUpIndex !== -1 && pile[firstFaceUpIndex].value === 'K') {
+                      // Если это не верхняя карта (т.е. перемещаем последовательность)
+                      if (firstFaceUpIndex < pile.length - 1) {
+                          const sequenceLength = pile.length - firstFaceUpIndex;
+                          moves.push({
+                              priority: 4,
+                              source: { type: 'tableau', index: sourceT },
+                              target: { type: 'tableau', index: t },
+                              card: pile[firstFaceUpIndex],
+                              description: `👑 Переместите последовательность из ${sequenceLength} карт в пустой tableau`,
+                              strategic_value: 60 + sequenceLength
+                          });
+                      } 
+                      // Если это верхняя карта и под ней есть закрытая карта
+                      else if (firstFaceUpIndex > 0 && !pile[firstFaceUpIndex - 1].faceUp) {
+                          moves.push({
+                              priority: 4,
+                              source: { type: 'tableau', index: sourceT },
+                              target: { type: 'tableau', index: t },
+                              card: pile[firstFaceUpIndex],
+                              description: `👑 Переместите ${pile[firstFaceUpIndex].value}${SUIT_SYMBOLS[pile[firstFaceUpIndex].suit]} - откроет новую карту!`,
+                              strategic_value: 70
+                          });
+                      }
+                      // Если это просто перемещение короля без особой выгоды
+                      else if (emptyTableauCount === 1) { // Только если это единственный пустой tableau
+                          moves.push({
+                              priority: 4,
+                              source: { type: 'tableau', index: sourceT },
+                              target: { type: 'tableau', index: t },
+                              card: pile[firstFaceUpIndex],
+                              description: `👑 Переместите ${pile[firstFaceUpIndex].value}${SUIT_SYMBOLS[pile[firstFaceUpIndex].suit]} в пустой tableau`,
+                              strategic_value: 40
+                          });
+                      }
+                  }
+              }
+          }
+      }
+      
+      // 5. Проверяем ходы из waste в tableau (если карта полезна)
+      if (gameState.waste.length > 0) {
+          const topCard = gameState.waste[gameState.waste.length - 1];
+          for (let t = 0; t < 7; t++) {
+              if (canMoveToTableau(topCard, t)) {
+                  // Оцениваем полезность хода
+                  const cardValue = CARD_VALUES.indexOf(topCard.value);
+                  const targetPile = gameState.tableau[t];
+                  const targetTopCard = targetPile[targetPile.length - 1];
+                  
+                  // Если это создает последовательность одного цвета - более полезно
+                  const isSameColor = (topCard.suit === '♥' || topCard.suit === '♦') === 
+                                     (targetTopCard.suit === '♥' || targetTopCard.suit === '♦');
+                  
+                  // Высокие карты более ценны для tableau
+                  const strategicValue = 30 + cardValue + (isSameColor ? -10 : 0);
+                  
+                  moves.push({
+                      priority: 5,
+                      source: { type: 'waste', index: 0 },
+                      target: { type: 'tableau', index: t },
+                      card: topCard,
+                      description: `📄 Переместите ${topCard.value}${SUIT_SYMBOLS[topCard.suit]} из waste в tableau`,
+                      strategic_value: strategicValue
+                  });
+              }
+          }
+      }
+      
+      // 6. Проверяем стратегические ходы между tableau
+      for (let sourceT = 0; sourceT < 7; sourceT++) {
+          const sourcePile = gameState.tableau[sourceT];
+          if (sourcePile.length === 0) continue;
+          
+          // Находим первую открытую карту
+          let firstFaceUpIndex = -1;
+          for (let i = 0; i < sourcePile.length; i++) {
+              if (sourcePile[i].faceUp) {
+                  firstFaceUpIndex = i;
+                  break;
+              }
+          }
+          
+          if (firstFaceUpIndex === -1) continue;
+          
+          // Проверяем каждую открытую карту в стопке
+          for (let i = firstFaceUpIndex; i < sourcePile.length; i++) {
+              const card = sourcePile[i];
+              
+              for (let targetT = 0; targetT < 7; targetT++) {
+                  if (targetT === sourceT) continue;
+                  
+                  if (canMoveToTableau(card, targetT)) {
+                      // Оцениваем стратегическую ценность хода
+                      let strategicValue = 0;
+                      
+                      // Если это не верхняя карта (перемещаем последовательность)
+                      if (i < sourcePile.length - 1) {
+                          const sequenceLength = sourcePile.length - i;
+                          strategicValue = 20 + sequenceLength;
+                      }
+                      // Если ход открывает закрытую карту
+                      else if (i > 0 && !sourcePile[i-1].faceUp) {
+                          strategicValue = 50;
+                      }
+                      // Если это просто перемещение карты
+                      else {
+                          // Проверяем, создает ли это полезную комбинацию
+                          const targetPile = gameState.tableau[targetT];
+                          if (targetPile.length > 0) {
+                              const targetTopCard = targetPile[targetPile.length - 1];
+                              const targetValue = CARD_VALUES.indexOf(targetTopCard.value);
+                              const cardValue = CARD_VALUES.indexOf(card.value);
+                              
+                              // Если разница в значениях больше 1, это может быть полезно
+                              if (targetValue - cardValue > 1) {
+                                  strategicValue = 15 + (targetValue - cardValue);
+                              } else {
+                                  // Иначе это просто перемещение без особой пользы
+                                  strategicValue = 5;
+                              }
+                          }
+                      }
+                      
+                      // Добавляем ход только если он имеет стратегическую ценность
+                      if (strategicValue > 10 || moves.length === 0) {
+                          let description = `🔄 Переместите ${card.value}${SUIT_SYMBOLS[card.suit]} в tableau`;
+                          
+                          if (i < sourcePile.length - 1) {
+                              const sequenceLength = sourcePile.length - i;
+                              description = `🔄 Переместите последовательность из ${sequenceLength} карт`;
+                          } else if (i > 0 && !sourcePile[i-1].faceUp) {
+                              description = `🔓 Переместите ${card.value}${SUIT_SYMBOLS[card.suit]} - откроет новую карту!`;
+                          }
+                          
+                          moves.push({
+                              priority: 6,
+                              source: { type: 'tableau', index: sourceT, cardIndex: i },
+                              target: { type: 'tableau', index: targetT },
+                              card: card,
+                              description: description,
+                              strategic_value: strategicValue
+                          });
+                      }
+                  }
+              }
+          }
+      }
+      
+      // 7. Если нет ходов и есть карты в колоде, предложим взять карту
+      if (moves.length === 0 && gameState.stock.length > 0) {
+          return {
+              priority: 7,
+              description: `🎴 Возьмите карту из колоды - возможно, появится полезный ход!`,
+              strategic_value: 10
+          };
+      }
+      
+      // Сортируем по стратегической ценности (приоритет используем как дополнительный критерий)
+      moves.sort((a, b) => {
+          if (a.strategic_value !== b.strategic_value) {
+              return b.strategic_value - a.strategic_value;
+          }
+          return a.priority - b.priority;
+      });
+      
+      // Возвращаем лучший ход или null, если ходов нет
       return moves.length > 0 ? moves[0] : null;
   }
   
