@@ -250,7 +250,9 @@ const onboarding = {
       updateDisplay();
       setupEventListeners();
       applyTheme();
+      applyStoredTheme();
       applyDeck();
+      updateProgressBar();
       // Проверяем, есть ли у пользователя псевдоним
       checkUserNickname();
       // Таймер не запускается автоматически - нужно сделать первый ход
@@ -498,6 +500,7 @@ const onboarding = {
       updateStockWaste();
       updateInfo();
       updateTimerState();
+      updateProgressBar();
   }
   
   // Обновление tableau
@@ -2239,4 +2242,203 @@ html, body {
   touch-action: none;
 }`;
   document.head.appendChild(style);
+}
+
+// Функции для работы с темой и прогресс-баром
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const themeIcon = document.querySelector('.theme-toggle i');
+    if (document.body.classList.contains('dark-mode')) {
+        themeIcon.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+    } else {
+        themeIcon.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+function applyStoredTheme() {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.querySelector('.theme-toggle i').textContent = '☀️';
+    }
+}
+
+function updateProgressBar() {
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar && gameState) {
+        const percentage = (gameState.totalFoundationCards / 52) * 100;
+        progressBar.style.width = `${percentage}%`;
+    }
+}
+
+// Улучшенная система подсказок
+function showHint() {
+    if (gameState.gameOver) return;
+    const bestMove = findBestMove();
+    if (bestMove) {
+        clearHighlights();
+        if (bestMove.type === 'draw') {
+            const stockPile = document.querySelector('.stock-pile');
+            stockPile.classList.add('hint-highlight');
+            showHintMessage('Возьмите карту из колоды');
+        } else if (bestMove.type === 'move') {
+            const fromCard = getCardElement(bestMove.fromSource, bestMove.fromPile, bestMove.fromCardIndex);
+            if (fromCard) {
+                fromCard.classList.add('highlight-move');
+                let targetElement;
+                if (bestMove.toSource === 'tableau') {
+                    targetElement = document.querySelectorAll('.tableau-column')[bestMove.toPile];
+                } else if (bestMove.toSource === 'foundation') {
+                    targetElement = document.querySelectorAll('.foundation-slot')[bestMove.toPile];
+                }
+                if (targetElement) {
+                    targetElement.classList.add('highlight');
+                    showHintMessage(`Переместите ${getCardName(bestMove.card)} в ${bestMove.toSource === 'tableau' ? 'колонку' : 'базу'}`);
+                }
+            }
+        }
+    } else {
+        if (gameState.stock.length > 0) {
+            const stockPile = document.querySelector('.stock-pile');
+            stockPile.classList.add('hint-highlight');
+            showHintMessage('Возьмите карту из колоды');
+        } else {
+            showHintMessage('Нет доступных ходов. Начните новую игру.');
+        }
+    }
+}
+
+function showHintMessage(text) {
+    const hintMessage = document.querySelector('.hint-message') || document.createElement('div');
+    hintMessage.className = 'hint-message';
+    hintMessage.textContent = text;
+    if (!document.body.contains(hintMessage)) {
+        document.body.appendChild(hintMessage);
+    }
+    setTimeout(() => {
+        hintMessage.classList.add('show');
+    }, 10);
+    setTimeout(() => {
+        hintMessage.classList.remove('show');
+        setTimeout(() => {
+            hintMessage.remove();
+        }, 300);
+    }, 3000);
+}
+
+function getCardName(card) {
+    return `${card.value}${card.suit}`;
+}
+
+// Улучшенная функция поиска лучшего хода
+function findBestMove() {
+    const possibleMoves = [];
+    
+    // 1. Проверяем возможность переместить карты из waste в foundation
+    if (gameState.waste.length > 0) {
+        const wasteTopCard = gameState.waste[gameState.waste.length - 1];
+        for (let f = 0; f < 4; f++) {
+            if (canMoveToFoundation('waste', 0, gameState.waste.length - 1, f)) {
+                return {
+                    type: 'move',
+                    fromSource: 'waste',
+                    fromPile: 0,
+                    fromCardIndex: gameState.waste.length - 1,
+                    toSource: 'foundation',
+                    toPile: f,
+                    card: wasteTopCard,
+                    priority: 10
+                };
+            }
+        }
+    }
+    
+    // 2. Проверяем возможность переместить карты из tableau в foundation
+    for (let t = 0; t < 7; t++) {
+        const tableauColumn = gameState.tableau[t];
+        if (tableauColumn.length === 0) continue;
+        
+        const topCard = tableauColumn[tableauColumn.length - 1];
+        if (!topCard.faceUp) continue;
+        
+        for (let f = 0; f < 4; f++) {
+            if (canMoveToFoundation('tableau', t, tableauColumn.length - 1, f)) {
+                return {
+                    type: 'move',
+                    fromSource: 'tableau',
+                    fromPile: t,
+                    fromCardIndex: tableauColumn.length - 1,
+                    toSource: 'foundation',
+                    toPile: f,
+                    card: topCard,
+                    priority: 9
+                };
+            }
+        }
+    }
+    
+    // 3. Проверяем возможность переместить карты между колонками tableau
+    for (let fromCol = 0; fromCol < 7; fromCol++) {
+        const fromCards = gameState.tableau[fromCol];
+        if (fromCards.length === 0) continue;
+        
+        let firstFaceUpIndex = fromCards.findIndex(card => card.faceUp);
+        if (firstFaceUpIndex === -1) continue;
+        
+        for (let cardIndex = firstFaceUpIndex; cardIndex < fromCards.length; cardIndex++) {
+            const card = fromCards[cardIndex];
+            if (!card.faceUp) continue;
+            
+            for (let toCol = 0; toCol < 7; toCol++) {
+                if (fromCol === toCol) continue;
+                
+                if (canMoveCards('tableau', fromCol, cardIndex, 'tableau', toCol)) {
+                    possibleMoves.push({
+                        type: 'move',
+                        fromSource: 'tableau',
+                        fromPile: fromCol,
+                        fromCardIndex: cardIndex,
+                        toSource: 'tableau',
+                        toPile: toCol,
+                        card: card,
+                        priority: card.value === 'K' ? 8 : 5
+                    });
+                }
+            }
+        }
+    }
+    
+    // 4. Проверяем возможность переместить карты из waste в tableau
+    if (gameState.waste.length > 0) {
+        const wasteTopCard = gameState.waste[gameState.waste.length - 1];
+        for (let toCol = 0; toCol < 7; toCol++) {
+            if (canMoveCards('waste', 0, gameState.waste.length - 1, 'tableau', toCol)) {
+                possibleMoves.push({
+                    type: 'move',
+                    fromSource: 'waste',
+                    fromPile: 0,
+                    fromCardIndex: gameState.waste.length - 1,
+                    toSource: 'tableau',
+                    toPile: toCol,
+                    card: wasteTopCard,
+                    priority: wasteTopCard.value === 'K' ? 7 : 4
+                });
+            }
+        }
+    }
+    
+    // Сортируем по приоритету и возвращаем лучший ход
+    possibleMoves.sort((a, b) => b.priority - a.priority);
+    if (possibleMoves.length > 0) {
+        return possibleMoves[0];
+    }
+    
+    // Если нет ходов и есть карты в колоде, предложим взять карту
+    if (gameState.stock.length > 0) {
+        return { type: 'draw' };
+    }
+    
+    return null;
 }
