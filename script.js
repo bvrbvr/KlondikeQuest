@@ -511,11 +511,16 @@ const onboarding = {
           slot.innerHTML = '';
           const cards = gameState.tableau[index];
           
+          let y = 8; // отступ сверху в слоте
+          const faceDownOffset = 18; // шаг для закрытых карт
+          const faceUpOffset = 28;   // шаг для открытых карт
           cards.forEach((card, cardIndex) => {
               const cardElement = createCardElement(card, cardIndex === cards.length - 1);
               cardElement.dataset.slotIndex = index;
               cardElement.dataset.cardIndex = cardIndex;
+              cardElement.style.top = y + 'px';
               slot.appendChild(cardElement);
+              y += card.faceUp ? faceUpOffset : faceDownOffset;
           });
       });
   }
@@ -2051,29 +2056,32 @@ const onboarding = {
       return moves.length > 0 ? moves[0] : null;
   }
   
-  // Настройка двойного клика для тузов
+  // Настройка двойного клика: авто-перенос на лучшую цель (foundation приоритетно, иначе подходящий tableau)
   function setupDoubleClickEvents() {
       document.addEventListener('dblclick', (e) => {
           const cardEl = e.target.closest('.card');
           if (!cardEl) return;
-          // Определяем источник и убеждаемся, что это верхняя карта стопки (для tableau)
           const source = getCardLocation(cardEl);
           if (!source) return;
+          // В tableau разрешаем даблклик только на верхней карте стопки
           if (source.type === 'tableau') {
               const pile = gameState.tableau[source.index];
               const topIndex = pile.length - 1;
               const cardIndex = Number.isInteger(parseInt(cardEl.dataset.cardIndex)) ? parseInt(cardEl.dataset.cardIndex) : topIndex;
-              if (cardIndex !== topIndex) return; // только верхняя карта
+              if (cardIndex !== topIndex) return;
           }
-          // Формируем цель foundation, если возможен ход
-          const card = { suit: cardEl.dataset.suit, value: cardEl.dataset.value };
-          let target = null;
-          for (let f = 0; f < 4; f++) {
-              if (canMoveToFoundation(card, f)) { target = { type: 'foundation', index: f }; break; }
-          }
-          if (target) {
-              // Переносим только одну карту
-              moveCards([card], source, target);
+          // Находим лучшую цель: сначала foundation, затем tableau
+          const best = findBestTarget(cardEl);
+          if (!best) return;
+          if (best.type === 'foundation') {
+              const card = { suit: cardEl.dataset.suit, value: cardEl.dataset.value };
+              moveCards([card], source, best);
+          } else if (best.type === 'tableau') {
+              // В tableau переносим всю последовательность, начиная с выбранной карты
+              const seq = getCardSequence(cardEl);
+              if (seq && seq.length) {
+                  moveCards(seq, source, best);
+              }
           }
       });
   }
