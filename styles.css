@@ -176,7 +176,7 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-md);
-  margin-top: calc(var(--tg-csafe-top, 0px) + 50px);
+  margin-top: calc(var(--tg-csafe-top, 0px) + 80px);
   margin-bottom: var(--spacing-lg);
   box-shadow: var(--glass-shadow);
   display: flex;
@@ -449,23 +449,45 @@ body {
   color: var(--card-black);
 }
 
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.card-corner-top {
+  align-self: flex-start;
+}
+
+.card-corner-bottom {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
 .card-rank {
   font-size: 14px;
   line-height: 1;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 2px;
 }
 
-.card-suit {
-  font-size: 18px;
+.card-suit-small {
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  margin-top: 1px;
+}
+
+.card-suit-center {
+  font-size: 32px;
   line-height: 1;
   text-align: center;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: auto;
+  margin: auto 0;
 }
 
 /* Progress Bar */
@@ -772,7 +794,7 @@ body {
     gap: var(--spacing-sm);
   }
   .game-header { 
-    margin-top: calc(var(--tg-csafe-top, 0px) + 60px);
+    margin-top: calc(var(--tg-csafe-top, 0px) + 90px);
   }
   
   .foundation-area {
@@ -799,11 +821,15 @@ body {
   }
   
   .card-rank {
-    font-size: 11px;
+    font-size: 10px;
   }
   
-  .card-suit {
-    font-size: 14px;
+  .card-suit-small {
+    font-size: 10px;
+  }
+  
+  .card-suit-center {
+    font-size: 24px;
   }
   
   .foundation-slot,
@@ -845,7 +871,7 @@ body {
     padding: 6px;
   }
   .game-header { 
-    margin-top: calc(var(--tg-csafe-top, 0px) + 70px);
+    margin-top: calc(var(--tg-csafe-top, 0px) + 100px);
     padding: var(--spacing-sm);
   }
   
@@ -874,11 +900,15 @@ body {
   }
   
   .card-rank {
-    font-size: 9px;
+    font-size: 8px;
   }
   
-  .card-suit {
-    font-size: 12px;
+  .card-suit-small {
+    font-size: 8px;
+  }
+  
+  .card-suit-center {
+    font-size: 18px;
   }
   
   .foundation-slot,

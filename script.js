@@ -591,8 +591,15 @@ const onboarding = {
       
       if (card.faceUp) {
           cardElement.innerHTML = `
-              <div class="card-rank">${card.value}</div>
-              <div class="card-suit">${SUIT_SYMBOLS[card.suit]}</div>
+              <div class="card-corner card-corner-top">
+                  <div class="card-rank">${card.value}</div>
+                  <div class="card-suit-small">${SUIT_SYMBOLS[card.suit]}</div>
+              </div>
+              <div class="card-suit-center">${SUIT_SYMBOLS[card.suit]}</div>
+              <div class="card-corner card-corner-bottom">
+                  <div class="card-rank">${card.value}</div>
+                  <div class="card-suit-small">${SUIT_SYMBOLS[card.suit]}</div>
+              </div>
           `;
       }
       
