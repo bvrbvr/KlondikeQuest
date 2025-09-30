@@ -164,7 +164,6 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-md);
-  padding-bottom: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -275,7 +274,7 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: var(--spacing-md);
-  margin-bottom: 0;
+  margin-bottom: var(--spacing-lg);
   flex: 1;
 }
 
@@ -893,7 +892,6 @@ body {
 @media (max-width: 480px) {
   .game-container {
     padding: 6px;
-    padding-bottom: 0;
   }
   .game-header { 
     margin-top: calc(var(--tg-csafe-top, 0px) + 100px);
