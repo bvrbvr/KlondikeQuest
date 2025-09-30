@@ -683,9 +683,7 @@ const onboarding = {
           elements.themeToggleBtn.addEventListener('click', toggleTheme);
       }
       // Переключение колоды
-      if (elements.deckToggleBtn) {
-          elements.deckToggleBtn.addEventListener('click', toggleDeck);
-      }
+      // Переключатель колоды удалён
       
       // Stock клик
       elements.stock.addEventListener('click', drawFromStock);
@@ -713,15 +711,7 @@ const onboarding = {
           controls.appendChild(btn);
           elements.themeToggleBtn = btn;
       }
-      if (!elements.deckToggleBtn) {
-          const btn = document.createElement('button');
-          btn.id = 'deck-toggle-btn';
-          btn.className = 'btn btn-secondary';
-          const deck = document.documentElement.getAttribute('data-deck') || 'blue';
-          btn.textContent = deck === 'red' ? 'Красная' : 'Синяя';
-          controls.appendChild(btn);
-          elements.deckToggleBtn = btn;
-      }
+      // Кнопку колоды больше не создаём
   }
   
   // Настройка Drag and Drop
@@ -1685,11 +1675,7 @@ const onboarding = {
   }
   
   // Применение выбранной колоды (оформление рубашки)
-  function applyDeck() {
-      const savedDeck = safeStorageGet('kq_deck') || 'blue';
-      document.documentElement.setAttribute('data-deck', savedDeck);
-      updateDeckToggleLabel();
-  }
+  function applyDeck() { /* отключено */ }
   
   function toggleTheme() {
       const current = document.documentElement.getAttribute('data-theme') || 'light';
@@ -1702,13 +1688,7 @@ const onboarding = {
       updateBackgroundTheme();
   }
   
-  function toggleDeck() {
-      const current = document.documentElement.getAttribute('data-deck') || 'blue';
-      const next = current === 'blue' ? 'red' : 'blue';
-      document.documentElement.setAttribute('data-deck', next);
-      safeStorageSet('kq_deck', next);
-      updateDeckToggleLabel();
-  }
+  function toggleDeck() { /* отключено */ }
   
   function updateThemeToggleLabel() {
       if (!elements.themeToggleBtn) return;
@@ -1716,11 +1696,7 @@ const onboarding = {
       elements.themeToggleBtn.textContent = (current === 'dark' ? 'Тёмная' : 'Светлая') + ' тема';
   }
   
-  function updateDeckToggleLabel() {
-      if (!elements.deckToggleBtn) return;
-      const current = document.documentElement.getAttribute('data-deck') || 'blue';
-      elements.deckToggleBtn.textContent = current === 'red' ? 'Красная' : 'Синяя';
-  }
+  function updateDeckToggleLabel() { /* отключено */ }
   
   function safeStorageGet(key) {
       try { return localStorage.getItem(key); } catch (_) { return null; }
@@ -2172,6 +2148,13 @@ const onboarding = {
       const background = document.querySelector('.background-animation');
       if (!background) return;
       
+      // Случайно расставляем плавающие карты, чтобы не было "призрака" в одном месте
+      const cards = background.querySelectorAll('.floating-card');
+      cards.forEach((card) => {
+          card.style.setProperty('--rand-x', Math.random().toString());
+          card.style.setProperty('--rand-y', Math.random().toString());
+      });
+
       // Добавляем интерактивность при движении мыши
       document.addEventListener('mousemove', (e) => {
           const cards = document.querySelectorAll('.floating-card');
@@ -2245,33 +2228,19 @@ html, body {
 }
 
 // Функции для работы с темой и прогресс-баром
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    const themeIcon = document.querySelector('.theme-toggle i');
-    if (document.body.classList.contains('dark-mode')) {
-        themeIcon.textContent = '☀️';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        themeIcon.textContent = '🌙';
-        localStorage.setItem('theme', 'light');
-    }
-}
+// Legacy fallback kept for older code paths; delegates to main toggleTheme above
+function legacyToggleTheme() { try { toggleTheme(); } catch (_) {} }
 
-function applyStoredTheme() {
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-        document.querySelector('.theme-toggle i').textContent = '☀️';
-    }
-}
+// Legacy fallback for reading theme; main applyTheme handles actual state
+function legacyApplyStoredTheme() { try { applyTheme(); } catch (_) {} }
 
-function updateProgressBar() {
-    const progressBar = document.querySelector('.progress-bar');
-    if (progressBar && gameState) {
-        const percentage = (gameState.totalFoundationCards / 52) * 100;
-        progressBar.style.width = `${percentage}%`;
-    }
-}
+  function updateProgressBar(extra = 0) {
+      const progressBar = document.querySelector('.progress-bar');
+      if (!progressBar) return;
+      const totalFoundationCards = gameState.foundation.reduce((sum, pile) => sum + pile.length, 0);
+      const percentage = Math.min(100, ((totalFoundationCards / 52) * 100) + extra);
+      progressBar.style.width = percentage + '%';
+  }
 
 // Улучшенная система подсказок
 function showHint() {
