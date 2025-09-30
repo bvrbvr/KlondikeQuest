@@ -36,16 +36,148 @@
   })();
   
   // Инициализация Telegram Web App
-  let tg;
-  if (window.Telegram && window.Telegram.WebApp) {
-      tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      // Полностью отключаем тактильную отдачу SDK (версии ниже 6.1 спамят предупреждения)
-      if (tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === 'function') {
-          try { tg.HapticFeedback.impactOccurred = function noop() {}; } catch (e) {}
-      }
-  }
+let tg;
+if (window.Telegram && window.Telegram.WebApp) {
+    tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    // Полностью отключаем тактильную отдачу SDK (версии ниже 6.1 спамят предупреждения)
+    if (tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === 'function') {
+        try { tg.HapticFeedback.impactOccurred = function noop() {}; } catch (e) {}
+    }
+}
+
+// Система онбординга для новых пользователей
+const onboarding = {
+    steps: [
+        {
+            target: '.stock-pile',
+            title: 'Колода карт',
+            content: 'Нажмите на колоду, чтобы взять карту',
+            position: 'bottom'
+        },
+        {
+            target: '.waste-pile',
+            title: 'Открытые карты',
+            content: 'Здесь отображаются открытые карты из колоды',
+            position: 'bottom'
+        },
+        {
+            target: '.foundation-area',
+            title: 'Фундамент',
+            content: 'Перетащите карты сюда, начиная с тузов и заканчивая королями',
+            position: 'bottom'
+        },
+        {
+            target: '.tableau-area',
+            title: 'Игровое поле',
+            content: 'Перетаскивайте карты, чтобы создать последовательности в порядке убывания с чередованием цветов',
+            position: 'top'
+        },
+        {
+            target: '.btn-hint',
+            title: 'Подсказки',
+            content: 'Нажмите, чтобы получить подсказку о возможном ходе',
+            position: 'left'
+        }
+    ],
+    currentStep: 0,
+    isActive: false,
+    
+    // Проверка, нужно ли показывать онбординг
+    shouldShow() {
+        return !localStorage.getItem('onboardingCompleted');
+    },
+    
+    // Запуск онбординга
+    start() {
+        if (!this.shouldShow()) return;
+        
+        this.isActive = true;
+        this.currentStep = 0;
+        this.showStep();
+        
+        // Создаем оверлей для онбординга
+        const overlay = document.createElement('div');
+        overlay.className = 'onboarding-overlay';
+        document.body.appendChild(overlay);
+    },
+    
+    // Показ текущего шага
+    showStep() {
+        if (!this.isActive || this.currentStep >= this.steps.length) {
+            this.complete();
+            return;
+        }
+        
+        const step = this.steps[this.currentStep];
+        const target = document.querySelector(step.target);
+        
+        if (!target) {
+            this.nextStep();
+            return;
+        }
+        
+        // Создаем подсказку
+        const tooltip = document.createElement('div');
+        tooltip.className = 'onboarding-tooltip ' + step.position;
+        tooltip.innerHTML = `
+            <h3>${step.title}</h3>
+            <p>${step.content}</p>
+            <div class="onboarding-buttons">
+                <button class="onboarding-next">Далее</button>
+                <button class="onboarding-skip">Пропустить</button>
+            </div>
+        `;
+        
+        // Позиционируем подсказку
+        const targetRect = target.getBoundingClientRect();
+        document.body.appendChild(tooltip);
+        
+        // Подсвечиваем целевой элемент
+        target.classList.add('onboarding-highlight');
+        
+        // Обработчики кнопок
+        tooltip.querySelector('.onboarding-next').addEventListener('click', () => {
+            target.classList.remove('onboarding-highlight');
+            tooltip.remove();
+            this.nextStep();
+        });
+        
+        tooltip.querySelector('.onboarding-skip').addEventListener('click', () => {
+            this.complete();
+        });
+    },
+    
+    // Переход к следующему шагу
+    nextStep() {
+        this.currentStep++;
+        this.showStep();
+    },
+    
+    // Завершение онбординга
+    complete() {
+        this.isActive = false;
+        
+        // Удаляем все элементы онбординга
+        document.querySelectorAll('.onboarding-highlight').forEach(el => {
+            el.classList.remove('onboarding-highlight');
+        });
+        
+        document.querySelectorAll('.onboarding-tooltip').forEach(el => {
+            el.remove();
+        });
+        
+        const overlay = document.querySelector('.onboarding-overlay');
+        if (overlay) overlay.remove();
+        
+        // Запоминаем, что онбординг пройден
+        localStorage.setItem('onboardingCompleted', 'true');
+        
+        // Обновляем прогресс-бар
+        updateProgressBar(10);
+    }
+};
   
   // Константы игры
   const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
@@ -119,6 +251,11 @@
       // startTimer();
       // Проверка отсутствия ходов на старте (на случай тупика после раздачи)
       notifyNoMovesIfNeeded();
+      
+      // Запуск онбординга для новых пользователей
+      if (!localStorage.getItem('onboardingCompleted')) {
+          setTimeout(() => onboarding.start(), 1000);
+      }
   }
   
   // Проверка псевдонима пользователя
