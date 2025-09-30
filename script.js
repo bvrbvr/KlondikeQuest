@@ -382,6 +382,15 @@
               const topCard = cards[cards.length - 1];
               const cardElement = createCardElement(topCard, true);
               cardElement.dataset.slotIndex = index;
+              
+              // Добавляем счетчик карт, если в стопке больше одной карты
+              if (cards.length > 1) {
+                  const counter = document.createElement('div');
+                  counter.className = 'card-counter';
+                  counter.textContent = cards.length;
+                  cardElement.appendChild(counter);
+              }
+              
               slot.appendChild(cardElement);
           }
       });
@@ -1142,21 +1151,30 @@
   function showHint() {
       const bestMove = findBestMove();
       
-      if (!bestMove) {
-          // Если нет доступных ходов, предлагаем взять карту из колоды
-          if (gameState.stock.length > 0) {
-              showHintMessage('🎴 Возьмите карту из колоды - возможно, появится полезный ход!');
-          } else {
-              showHintMessage('😔 Нет доступных ходов. Попробуйте отменить последний ход или начать новую игру.');
-          }
+      // Если есть ход, показываем его
+      if (bestMove) {
+          // Подсвечиваем карту и цель
+          highlightHint(bestMove);
+          
+          // Показываем сообщение с подсказкой
+          showHintMessage(bestMove.description);
           return;
       }
       
-      // Подсвечиваем карту и цель
-      highlightHint(bestMove);
-      
-      // Показываем сообщение с подсказкой
-      showHintMessage(bestMove.description);
+      // Если нет доступных ходов
+      if (gameState.stock.length > 0) {
+          // Подсвечиваем колоду, если в ней есть карты
+          const stockElement = document.getElementById('stock');
+          if (stockElement) {
+              stockElement.classList.add('hint-highlight');
+              setTimeout(() => stockElement.classList.remove('hint-highlight'), 3000);
+          }
+          
+          // Всегда предлагаем взять карту из колоды, если она не пуста
+          showHintMessage('🎴 Возьмите карту из колоды - возможно, появится полезный ход!');
+      } else {
+          showHintMessage('😔 Нет доступных ходов. Попробуйте отменить последний ход или начать новую игру.');
+      }
   }
   
   // Подсветка подсказки
