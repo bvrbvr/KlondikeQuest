@@ -282,7 +282,7 @@ body {
 .foundation-area {
   grid-column: 1 / 5;
   display: flex;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-lg);
   justify-content: flex-start;
 }
 
@@ -318,6 +318,13 @@ body {
   display: flex;
   gap: var(--spacing-md);
   justify-content: flex-end;
+}
+
+.stock-container,
+.waste-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stock,
@@ -811,7 +818,7 @@ body {
   
   .foundation-area {
     grid-column: 1 / 3;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     justify-content: space-around;
   }
   
@@ -893,7 +900,7 @@ body {
   }
   
   .foundation-area {
-    gap: 12px;
+    gap: 6px;
     justify-content: space-around;
   }
   
