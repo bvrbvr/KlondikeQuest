@@ -511,9 +511,11 @@ const onboarding = {
           slot.innerHTML = '';
           const cards = gameState.tableau[index];
           
-          let y = 8; // отступ сверху в слоте
-          const faceDownOffset = 18; // шаг для закрытых карт
-          const faceUpOffset = 28;   // шаг для открытых карт
+          let y = 6; // отступ сверху в слоте
+          const isNarrow = window.innerWidth <= 480;
+          const isTablet = window.innerWidth <= 768;
+          const faceDownOffset = isNarrow ? 14 : (isTablet ? 16 : 18);
+          const faceUpOffset = isNarrow ? 22 : (isTablet ? 24 : 28);
           cards.forEach((card, cardIndex) => {
               const cardElement = createCardElement(card, cardIndex === cards.length - 1);
               cardElement.dataset.slotIndex = index;
