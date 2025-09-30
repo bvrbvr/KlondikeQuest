@@ -282,8 +282,8 @@ body {
 .foundation-area {
   grid-column: 1 / 5;
   display: flex;
-  gap: var(--spacing-md);
-  justify-content: space-between;
+  gap: var(--spacing-lg);
+  justify-content: flex-start;
 }
 
 .foundation-slot {
@@ -316,7 +316,7 @@ body {
 .stock-waste-area {
   grid-column: 5 / 8;
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
   justify-content: flex-end;
 }
 
@@ -799,12 +799,14 @@ body {
   
   .foundation-area {
     grid-column: 1 / 3;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
+    justify-content: space-around;
   }
   
   .stock-waste-area {
     grid-column: 3 / 5;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
+    justify-content: space-around;
   }
   
   .tableau-area {
@@ -880,11 +882,13 @@ body {
   }
   
   .foundation-area {
-    gap: 4px;
+    gap: 6px;
+    justify-content: space-around;
   }
   
   .stock-waste-area {
-    gap: 4px;
+    gap: 6px;
+    justify-content: space-around;
   }
   
   .tableau-area {
