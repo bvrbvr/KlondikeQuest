@@ -399,7 +399,20 @@ body {
   padding: var(--spacing-xs);
   font-weight: 600;
   user-select: none;
+}
+
+/* Карты в tableau имеют left смещение */
+.tableau-slot .card {
   left: 6px;
+}
+
+/* Карты в foundation и waste центрируются */
+.foundation-slot .card,
+.waste .card,
+.stock .card {
+  position: relative;
+  left: auto;
+  top: auto;
 }
 
 .card:hover {
@@ -815,8 +828,8 @@ body {
   }
   
   .card {
-    width: 60px;
-    height: 84px;
+    width: 58px;
+    height: 82px;
     font-size: 10px;
     padding: 3px;
   }
@@ -836,13 +849,13 @@ body {
   .foundation-slot,
   .stock,
   .waste {
-    width: 60px;
-    height: 84px;
+    width: 62px;
+    height: 86px;
   }
   .tableau-slot { 
     min-height: 300px;
     flex: 1;
-    min-width: 60px;
+    min-width: 62px;
   }
   
   .game-header {
@@ -894,10 +907,13 @@ body {
   }
   
   .card {
-    width: 50px;
-    height: 70px;
+    width: 48px;
+    height: 68px;
     font-size: 9px;
     padding: 2px;
+  }
+  
+  .tableau-slot .card {
     left: 3px;
   }
   
@@ -916,13 +932,13 @@ body {
   .foundation-slot,
   .stock,
   .waste {
-    width: 50px;
-    height: 70px;
+    width: 52px;
+    height: 72px;
   }
   
   .tableau-slot { 
     min-height: 280px;
-    min-width: 50px;
+    min-width: 52px;
   }
   
   .game-title {
