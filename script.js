@@ -93,6 +93,12 @@ const onboarding = {
     start() {
         if (!this.shouldShow()) return;
         
+        // Проверяем, загружена ли игра полностью
+        if (!document.querySelector('.stock-pile')) {
+            setTimeout(() => this.start(), 1000);
+            return;
+        }
+        
         this.isActive = true;
         this.currentStep = 0;
         this.showStep();
@@ -254,7 +260,11 @@ const onboarding = {
       
       // Запуск онбординга для новых пользователей
       if (!localStorage.getItem('onboardingCompleted')) {
-          setTimeout(() => onboarding.start(), 1000);
+          setTimeout(() => {
+              if (onboarding && typeof onboarding.start === 'function') {
+                  onboarding.start();
+              }
+          }, 1000);
       }
   }
   
