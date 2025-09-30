@@ -406,15 +406,12 @@ body {
   left: 6px;
 }
 
-/* Карты в foundation/waste/stock - центрированы по горизонтали, сверху слота */
+/* Карты в foundation/waste/stock - центрированы, немного отступы для красоты */
 .foundation-slot .card,
 .waste .card,
 .stock .card {
-  top: 0;
-  left: 0;
-  right: 0;
-  margin-left: auto;
-  margin-right: auto;
+  top: 2px;
+  left: 4px;
 }
 
 .card:hover {
@@ -830,8 +827,8 @@ body {
   }
   
   .card {
-    width: 58px;
-    height: 82px;
+    width: 54px;
+    height: 78px;
     font-size: 10px;
     padding: 3px;
   }
@@ -909,8 +906,8 @@ body {
   }
   
   .card {
-    width: 48px;
-    height: 68px;
+    width: 46px;
+    height: 66px;
     font-size: 9px;
     padding: 2px;
   }
