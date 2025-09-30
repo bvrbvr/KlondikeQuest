@@ -591,14 +591,8 @@ const onboarding = {
       
       if (card.faceUp) {
           cardElement.innerHTML = `
-              <div class="card-top">
-                  <span class="card-value">${card.value}</span>
-                  <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
-              </div>
-              <div class="card-bottom">
-                  <span class="card-value">${card.value}</span>
-                  <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
-              </div>
+              <div class="card-rank">${card.value}</div>
+              <div class="card-suit">${SUIT_SYMBOLS[card.suit]}</div>
           `;
       }
       
