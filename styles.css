@@ -838,16 +838,18 @@ body {
   
   .tableau-area {
     grid-column: 1 / 5;
-    flex-wrap: wrap;
+    /* Keep all seven columns in one row */
+    flex-wrap: nowrap;
     gap: var(--spacing-xs);
   }
   
   .card {
-    width: 54px;
-    height: 78px;
+    width: 46px;
+    height: 66px;
     font-size: 10px;
     padding: 3px;
   }
+  .tableau-slot .card { left: 4px; }
   
   .card-rank {
     font-size: 10px;
@@ -869,8 +871,8 @@ body {
   }
   .tableau-slot { 
     min-height: 180px;
-    flex: 1;
-    min-width: 62px;
+    flex: 1 1 0;
+    min-width: 0; /* allow shrink to fit 7 columns */
   }
   
   .game-header {
@@ -953,7 +955,7 @@ body {
   
   .tableau-slot { 
     min-height: 160px;
-    min-width: 52px;
+    min-width: 0; /* keep single row at very small widths */
   }
   
   .game-title {
