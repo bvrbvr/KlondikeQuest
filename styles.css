@@ -321,12 +321,16 @@ body {
   display: flex;
   gap: var(--spacing-md);
   justify-content: flex-end;
+  /* Top-align with foundation row */
+  align-items: flex-start;
+  align-self: start;
 }
 
 .stock-container,
 .waste-container {
   display: flex;
-  align-items: center;
+  /* Keep boxes aligned to the top of the row */
+  align-items: flex-start;
   justify-content: center;
 }
 
