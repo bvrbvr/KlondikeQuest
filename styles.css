@@ -176,7 +176,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-md);
-  margin-top: calc(var(--tg-csafe-top, 0px) + 80px);
+  /* Avoid double safe-area offset; container already adds top padding on mobile */
+  margin-top: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
   box-shadow: var(--glass-shadow);
   display: flex;
@@ -274,7 +275,8 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  /* Reduce bottom gap; safe-area padding is applied on container */
+  margin-bottom: var(--spacing-md);
   flex: 1;
 }
 
@@ -537,7 +539,8 @@ body {
 /* Theme Toggle */
 .theme-toggle {
   position: fixed;
-  bottom: var(--spacing-lg);
+  /* Lift above iOS home indicator / Telegram panel */
+  bottom: calc(var(--spacing-lg) + var(--tg-csafe-bottom, 0px));
   right: var(--spacing-lg);
   width: 60px;
   height: 60px;
