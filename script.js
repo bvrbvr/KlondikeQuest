@@ -2142,6 +2142,7 @@ const onboarding = {
   document.addEventListener('DOMContentLoaded', () => {
       initGame();
       initBackgroundAnimation();
+      try { if (tg) injectMobileTouchStyles(); } catch (e) {}
       
       // Обработка изменения размера окна
       window.addEventListener('resize', () => {
@@ -2209,7 +2210,7 @@ const onboarding = {
   // document.head.appendChild(rippleStyle);
   
 
-function injectMobileTouchStyles() { return; /* no-op */
+function injectMobileTouchStyles() {
 
   if (document.getElementById('mobile-touch-style')) return;
   const style = document.createElement('style');
