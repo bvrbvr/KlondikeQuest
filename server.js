@@ -70,6 +70,30 @@ app.get('/api/api/v1/stats', (req, res) => {
 	res.json({ totalGames, bestTime, bestMoves, averageTime, averageMoves, last10 });
 });
 
+// Leaderboard: best per user (by best time, then best moves)
+app.get('/api/api/v1/leaderboard', (req, res) => {
+    const results = readResults();
+    const byUser = new Map();
+
+    for (const r of results) {
+        const name = (r.username || r.userId || 'Гость').toString();
+        const prev = byUser.get(name);
+        if (!prev) {
+            byUser.set(name, { nickname: name, bestTime: r.time, bestMoves: r.moves });
+        } else {
+            const betterTime = Math.min(prev.bestTime, r.time);
+            const betterMoves = Math.min(prev.bestMoves, r.moves);
+            byUser.set(name, { nickname: name, bestTime: betterTime, bestMoves: betterMoves });
+        }
+    }
+
+    const leaderboard = Array.from(byUser.values())
+        .sort((a, b) => (a.bestTime - b.bestTime) || (a.bestMoves - b.bestMoves))
+        .slice(0, 50);
+
+    res.json(leaderboard);
+});
+
 app.listen(PORT, () => {
 	ensureDataFile();
 	console.log(`Results API running on http://localhost:${PORT}`);

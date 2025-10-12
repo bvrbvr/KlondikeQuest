@@ -2500,3 +2500,53 @@ function findBestMove() {
     
     return null;
 }
+
+// API helpers and leaderboard overrides (robust fetching + modal always opens)
+function getApiBases() {
+    let primary = '';
+    try {
+        if (location && location.origin) {
+            primary = location.origin.replace(/\/$/, '') + '/api/api/v1';
+        }
+    } catch (_) {}
+    const fallback = 'https://zioj.duckdns.org/api/api/v1';
+    return [primary, fallback].filter(Boolean);
+}
+
+async function fetchJson(path) {
+    const bases = getApiBases();
+    for (const base of bases) {
+        const url = base + path;
+        try {
+            console.log('Р—Р°РїСЂРѕСЃ Рє API:', url);
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+        } catch (e) {
+            console.warn('РћС€РёР±РєР° Р·Р°РїСЂРѕСЃР°', url, e);
+            continue;
+        }
+    }
+    return null;
+}
+
+// Override API functions if defined earlier
+try { fetchStats = async function() { return await fetchJson('/stats'); }; } catch (_) {}
+try { fetchLeaderboard = async function() { return await fetchJson('/leaderboard'); }; } catch (_) {}
+try {
+    const prevShowLeaderboard = typeof showLeaderboard === 'function' ? showLeaderboard : null;
+    showLeaderboard = async function() {
+        const leaderboard = await fetchJson('/leaderboard');
+        if (typeof showStatsModal === 'function') showStatsModal();
+        const list = document.getElementById('leaderboard-list');
+        if (!leaderboard || !leaderboard.length) {
+            if (list) list.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>';
+            return;
+        }
+        if (typeof renderLeaderboard === 'function') {
+            renderLeaderboard(leaderboard);
+        } else if (list) {
+            list.textContent = JSON.stringify(leaderboard);
+        }
+    };
+} catch (_) {}
