@@ -156,6 +156,108 @@
     
     
     
-    <script src="script.js?v=60"></script>
+    <script src="script.js?v=62"></script>
+    <script>
+      // Optional: set window.KQ_API_BASE = 'https://your-domain/api/api/v1';
+      (function () {
+        function getBases() {
+          const bases = [];
+          try {
+            if (window.KQ_API_BASE && /^https?:\/\//.test(window.KQ_API_BASE)) {
+              bases.push(String(window.KQ_API_BASE).replace(/\/$/, ''));
+            }
+          } catch (e) {}
+          try {
+            if (location && (location.protocol === 'http:' || location.protocol === 'https:') && location.origin) {
+              bases.push(location.origin.replace(/\/$/, '') + '/api/api/v1');
+            }
+          } catch (e) {}
+          bases.push('https://zioj.duckdns.org/api/api/v1');
+          return Array.from(new Set(bases)).filter(Boolean);
+        }
+
+        if (typeof window.fetchJson !== 'function') {
+          window.fetchJson = async function (path) {
+            const bases = getBases();
+            for (const base of bases) {
+              const url = base + path;
+              try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return await res.json();
+              } catch (e) {
+                console.warn('API request failed', url, e);
+                continue;
+              }
+            }
+            return null;
+          };
+        }
+
+        try { window.fetchStats = async function () { return await window.fetchJson('/stats'); }; } catch (e) {}
+        try { window.fetchLeaderboard = async function () { return await window.fetchJson('/leaderboard'); }; } catch (e) {}
+
+        try {
+          const prevShowLeaderboard = window.showLeaderboard;
+          window.showLeaderboard = async function () {
+            const leaderboard = await window.fetchJson('/leaderboard');
+            if (typeof window.showStatsModal === 'function') window.showStatsModal();
+            const list = document.getElementById('leaderboard-list');
+            if (!leaderboard || !leaderboard.length) {
+              if (list) list.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>';
+              return;
+            }
+            if (typeof window.renderLeaderboard === 'function') window.renderLeaderboard(leaderboard);
+            else if (list) list.textContent = JSON.stringify(leaderboard);
+          };
+        } catch (e) {}
+      })();
+    </script>
+    <script>
+      // Ensure modals use .active to become visible (CSS expects it)
+      (function () {
+        window.showStatsModal = function () {
+          var m = document.getElementById('stats-modal');
+          if (!m) return;
+          m.classList.remove('hidden');
+          m.classList.add('active');
+        };
+        window.hideStatsModal = function () {
+          var m = document.getElementById('stats-modal');
+          if (!m) return;
+          m.classList.remove('active');
+          m.classList.add('hidden');
+        };
+      })();
+    </script>
+    <script>
+      // Final override to ensure HTTP(S) base is used even on file://
+      (function () {
+        function bases() {
+          const out = [];
+          try { if (window.KQ_API_BASE && /^https?:\/\//.test(window.KQ_API_BASE)) out.push(String(window.KQ_API_BASE).replace(/\/$/, '')); } catch (_) {}
+          try { if (location && (location.protocol === 'http:' || location.protocol === 'https:') && location.origin) out.push(location.origin.replace(/\/$/, '') + '/api/api/v1'); } catch (_) {}
+          out.push('https://zioj.duckdns.org/api/api/v1');
+          return Array.from(new Set(out));
+        }
+        window.fetchJson = async function(path){
+          for (const base of bases()) {
+            const url = base + path;
+            try { const res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status); return await res.json(); } catch(e){ console.warn('API request failed', url, e); }
+          }
+          return null;
+        };
+        window.fetchLeaderboard = async function(){ return await window.fetchJson('/leaderboard'); };
+        window.fetchStats = async function(){ return await window.fetchJson('/stats'); };
+        const prevShowLeaderboard = window.showLeaderboard;
+        window.showLeaderboard = async function(){
+          const leaderboard = await window.fetchLeaderboard();
+          if (typeof window.showStatsModal === 'function') window.showStatsModal();
+          const list = document.getElementById('leaderboard-list');
+          if (!leaderboard || !leaderboard.length) { if (list) list.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>'; return; }
+          if (typeof window.renderLeaderboard === 'function') window.renderLeaderboard(leaderboard); else if (list) list.textContent = JSON.stringify(leaderboard);
+        };
+      })();
+    </script>
 </body>
 </html>
