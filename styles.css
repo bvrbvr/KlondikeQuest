@@ -308,6 +308,18 @@ body {
   border-color: var(--primary);
   background: rgba(76, 175, 80, 0.1);
 }
+  .hint-highlight {
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.6);
+    border-color: var(--secondary);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .highlight-move {
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.6);
+    border-color: var(--primary);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  
 
 .foundation-slot.highlight {
   border-color: var(--primary);
