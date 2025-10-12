@@ -194,6 +194,81 @@ const onboarding = {
       clubs: '♣',
       spades: '♠'
   };
+
+  // Ensure a styled exit confirmation UI exists and is wired
+  function ensureExitUI() {
+      const existingCloseBtn = document.getElementById('close-app-btn');
+      if (!existingCloseBtn) {
+          const controls = document.querySelector('.game-controls');
+          if (controls) {
+              const btn = document.createElement('button');
+              btn.id = 'close-app-btn';
+              btn.className = 'btn btn-secondary';
+              btn.textContent = 'Закрыть';
+              controls.appendChild(btn);
+          }
+      }
+
+      if (!document.getElementById('confirm-exit-modal')) {
+          const container = document.querySelector('.game-container') || document.body;
+          const wrapper = document.createElement('div');
+          wrapper.id = 'confirm-exit-modal';
+          wrapper.className = 'modal hidden';
+          wrapper.innerHTML = `
+              <div class=\"modal-content\">\n\
+                  <h2>Выйти из игры?</h2>\n\
+                  <p>Текущий прогресс может быть не сохранён. Вы уверены, что хотите закрыть игру?</p>\n\
+                  <div class=\"modal-footer\" style=\"display:flex; gap: 12px; justify-content: flex-end; margin-top: 16px;\">\n\
+                      <button id=\\\"cancel-exit-btn\\\" class=\\\"btn btn-secondary\\\">Отмена</button>\n\
+                      <button id=\\\"confirm-exit-btn\\\" class=\\\"btn btn-primary\\\">Выйти</button>\n\
+                  </div>\n\
+              </div>`;
+          container.appendChild(wrapper);
+      }
+
+      const closeBtn = document.getElementById('close-app-btn');
+      const modal = document.getElementById('confirm-exit-modal');
+      const cancelBtn = document.getElementById('cancel-exit-btn');
+      const confirmBtn = document.getElementById('confirm-exit-btn');
+
+      if (closeBtn && modal) {
+          closeBtn.addEventListener('click', () => {
+              modal.classList.remove('hidden');
+          });
+      }
+      if (cancelBtn && modal) {
+          cancelBtn.addEventListener('click', () => {
+              modal.classList.add('hidden');
+          });
+      }
+      if (confirmBtn) {
+          confirmBtn.addEventListener('click', () => {
+              try {
+                  if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.close === 'function') {
+                      window.Telegram.WebApp.close();
+                      return;
+                  }
+              } catch (e) {}
+              window.close();
+              setTimeout(() => { try { location.href = 'about:blank'; } catch (_) {} }, 50);
+          });
+      }
+
+      try {
+          if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.enableClosingConfirmation === 'function') {
+              window.Telegram.WebApp.enableClosingConfirmation(true);
+          }
+      } catch (e) {}
+
+      window.addEventListener('beforeunload', (e) => {
+          const inProgress = !!(gameState && (gameState.gameStarted || (gameState.moves && gameState.moves > 0)));
+          if (inProgress) {
+              e.preventDefault();
+              e.returnValue = '';
+              return '';
+          }
+      });
+  }
   
   // Состояние игры
   class GameState {
@@ -249,6 +324,8 @@ const onboarding = {
       dealCards();
       updateDisplay();
       setupEventListeners();
+      // Ensure exit UI and confirmation are available
+      ensureExitUI();
       applyTheme();
       applyStoredTheme();
       applyDeck();

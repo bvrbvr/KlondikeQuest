@@ -139,6 +139,17 @@
     </div>
 
     <!-- Прогресс-бар для отслеживания прогресса игры -->
+        <!-- Подтверждение выхода -->
+        <div id="confirm-exit-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Выйти из игры?</h2>
+                <p>Текущий прогресс может быть не сохранён. Вы уверены, что хотите закрыть игру?</p>
+                <div class="modal-footer" style="display:flex; gap: 12px; justify-content: flex-end; margin-top: 16px;">
+                    <button id="cancel-exit-btn" class="btn btn-secondary">Отмена</button>
+                    <button id="confirm-exit-btn" class="btn btn-primary">Выйти</button>
+                </div>
+            </div>
+        </div>
     <div class="progress-container">
         <div class="progress-bar"></div>
     </div>
