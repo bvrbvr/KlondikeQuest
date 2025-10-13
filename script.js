@@ -41,6 +41,11 @@ if (window.Telegram && window.Telegram.WebApp) {
     tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
+    tg.onEvent?.('theme_changed', () => {
+        if (userSettings.theme === 'auto') {
+            applyTheme('auto');
+        }
+    });
     // Полностью отключаем тактильную отдачу SDK (версии ниже 6.1 спамят предупреждения)
     if (tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === 'function') {
         try { tg.HapticFeedback.impactOccurred = function noop() {}; } catch (e) {}
@@ -195,6 +200,65 @@ const onboarding = {
       spades: '♠'
   };
 
+  const DEFAULT_SETTINGS = {
+      theme: 'auto',
+      deck: 'classic',
+      animations: true,
+      haptics: true
+  };
+
+  const DEFAULT_STATS = {
+      totalWins: 0,
+      bestTime: null,
+      bestMoves: null,
+      winStreak: 0,
+      longestStreak: 0,
+      lastWinTime: null,
+      lastWinMoves: null
+  };
+
+  const ACHIEVEMENTS = [
+      {
+          id: 'first_win',
+          title: 'Первая победа',
+          description: 'Завершите первую игру',
+          check: (stats) => stats.totalWins >= 1
+      },
+      {
+          id: 'speed_runner',
+          title: 'Скоростной сборщик',
+          description: 'Победа быстрее 2 минут',
+          check: (stats) => typeof stats.lastWinTime === 'number' && stats.lastWinTime <= 120
+      },
+      {
+          id: 'smart_moves',
+          title: 'Стратег',
+          description: 'Победа менее чем за 120 ходов',
+          check: (stats) => typeof stats.lastWinMoves === 'number' && stats.lastWinMoves <= 120
+      },
+      {
+          id: 'streak_master',
+          title: 'Серия из трёх',
+          description: 'Выиграйте три игры подряд',
+          check: (stats) => stats.winStreak >= 3
+      }
+  ];
+
+  let userSettings = loadUserSettings();
+  let localStats = loadLocalStats();
+  let unlockedAchievements = loadUnlockedAchievements();
+  let modalSettings = null;
+  const prefersDarkMedia = window.matchMedia && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: dark)')
+      : null;
+  if (prefersDarkMedia && typeof prefersDarkMedia.addEventListener === 'function') {
+      prefersDarkMedia.addEventListener('change', () => {
+          if (userSettings.theme === 'auto') {
+              applyTheme('auto');
+          }
+      });
+  }
+
   // Ensure a styled exit confirmation UI exists and is wired
   function ensureExitUI() {
       const existingCloseBtn = document.getElementById('close-app-btn');
@@ -306,7 +370,14 @@ const onboarding = {
       winTime: document.getElementById('win-time'),
       winMoves: document.getElementById('win-moves'),
       themeToggleBtn: document.getElementById('theme-toggle-btn'),
-      deckToggleBtn: document.getElementById('deck-toggle-btn'),
+      settingsBtn: document.getElementById('settings-btn'),
+      settingsModal: document.getElementById('settings-modal'),
+      closeSettingsBtn: document.getElementById('close-settings-btn'),
+      saveSettingsBtn: document.getElementById('save-settings-btn'),
+      themeOptionButtons: Array.from(document.querySelectorAll('.theme-option')),
+      deckOptionButtons: Array.from(document.querySelectorAll('.deck-option')),
+      toggleAnimations: document.getElementById('toggle-animations'),
+      toggleHaptics: document.getElementById('toggle-haptics'),
       // Новые элементы для псевдонимов и статистики
       nicknameModal: document.getElementById('nickname-modal'),
       nicknameInput: document.getElementById('nickname-input'),
@@ -314,7 +385,8 @@ const onboarding = {
       statsModal: document.getElementById('stats-modal'),
       leaderboardList: document.getElementById('leaderboard-list'),
       userNickname: document.getElementById('user-nickname'),
-      closeStatsBtn: document.getElementById('close-stats-btn')
+      closeStatsBtn: document.getElementById('close-stats-btn'),
+      achievementsList: document.getElementById('achievements-list')
   };
   
   // Инициализация игры
@@ -326,9 +398,11 @@ const onboarding = {
       setupEventListeners();
       // Ensure exit UI and confirmation are available
       ensureExitUI();
-      applyTheme();
-      applyStoredTheme();
-      applyDeck();
+      applyTheme(userSettings.theme);
+      applyDeckTheme(userSettings.deck);
+      applyEffectsSettings();
+      syncSettingsControls();
+      renderAchievements();
       updateProgressBar();
       // Проверяем, есть ли у пользователя псевдоним
       checkUserNickname();
@@ -728,6 +802,39 @@ const onboarding = {
           newGame();
       });
       
+      if (elements.settingsBtn) {
+          elements.settingsBtn.addEventListener('click', openSettingsModal);
+      }
+      if (elements.closeSettingsBtn) {
+          elements.closeSettingsBtn.addEventListener('click', closeSettingsModal);
+      }
+      if (elements.saveSettingsBtn) {
+          elements.saveSettingsBtn.addEventListener('click', saveSettingsFromModal);
+      }
+      if (elements.settingsModal) {
+          elements.settingsModal.addEventListener('click', (event) => {
+              if (event.target === elements.settingsModal) {
+                  closeSettingsModal();
+              }
+          });
+      }
+      if (elements.themeOptionButtons && elements.themeOptionButtons.length) {
+          elements.themeOptionButtons.forEach((button) => {
+              button.addEventListener('click', () => selectThemeOption(button.dataset.theme));
+          });
+      }
+      if (elements.deckOptionButtons && elements.deckOptionButtons.length) {
+          elements.deckOptionButtons.forEach((button) => {
+              button.addEventListener('click', () => selectDeckOption(button.dataset.deck));
+          });
+      }
+      if (elements.toggleAnimations) {
+          elements.toggleAnimations.addEventListener('change', (event) => setModalAnimations(event.target.checked));
+      }
+      if (elements.toggleHaptics) {
+          elements.toggleHaptics.addEventListener('change', (event) => setModalHaptics(event.target.checked));
+      }
+      
       // Новые обработчики для псевдонимов и статистики
       if (elements.saveNicknameBtn) {
           elements.saveNicknameBtn.addEventListener('click', saveNickname);
@@ -785,18 +892,111 @@ const onboarding = {
   
   // Создание кнопок темы/колоды, если их нет в разметке
   function ensureControlButtons() {
-      const controls = document.querySelector('.game-header .game-controls');
-      if (!controls) return;
-      if (!elements.themeToggleBtn) {
-          const btn = document.createElement('button');
-          btn.id = 'theme-toggle-btn';
-          btn.className = 'btn btn-secondary';
-          const current = document.documentElement.getAttribute('data-theme') || 'light';
-          btn.textContent = (current === 'dark' ? 'Тёмная' : 'Светлая') + ' тема';
-          controls.appendChild(btn);
-          elements.themeToggleBtn = btn;
+      // Настройки и переключатель темы временно отключены.
+      return;
+  }
+
+  function openSettingsModal() {
+      if (!elements.settingsModal) return;
+      modalSettings = { ...userSettings };
+      elements.settingsModal.classList.remove('hidden');
+      elements.settingsModal.classList.add('active');
+      populateSettingsModal();
+      document.addEventListener('keydown', handleSettingsKeydown);
+  }
+
+  function closeSettingsModal() {
+      if (!elements.settingsModal) return;
+      elements.settingsModal.classList.remove('active');
+      elements.settingsModal.classList.add('hidden');
+      modalSettings = null;
+      document.removeEventListener('keydown', handleSettingsKeydown);
+  }
+
+  function handleSettingsKeydown(event) {
+      if (event.key === 'Escape') {
+          closeSettingsModal();
       }
-      // Кнопку колоды больше не создаём
+  }
+
+  function populateSettingsModal() {
+      if (!modalSettings) return;
+      updateThemeOptionState(modalSettings.theme);
+      updateDeckOptionState(modalSettings.deck);
+      if (elements.toggleAnimations) {
+          elements.toggleAnimations.checked = Boolean(modalSettings.animations);
+      }
+      if (elements.toggleHaptics) {
+          elements.toggleHaptics.checked = Boolean(modalSettings.haptics);
+      }
+  }
+
+  function selectThemeOption(theme) {
+      if (!modalSettings) return;
+      modalSettings.theme = theme || DEFAULT_SETTINGS.theme;
+      updateThemeOptionState(modalSettings.theme);
+  }
+
+  function selectDeckOption(deck) {
+      if (!modalSettings) return;
+      modalSettings.deck = deck || DEFAULT_SETTINGS.deck;
+      updateDeckOptionState(modalSettings.deck);
+  }
+
+  function setModalAnimations(enabled) {
+      if (!modalSettings) return;
+      modalSettings.animations = Boolean(enabled);
+  }
+
+  function setModalHaptics(enabled) {
+      if (!modalSettings) return;
+      modalSettings.haptics = Boolean(enabled);
+  }
+
+  function saveSettingsFromModal() {
+      if (!modalSettings) {
+          closeSettingsModal();
+          return;
+      }
+      applySettings(modalSettings);
+      closeSettingsModal();
+  }
+
+  function applySettings(nextSettings) {
+      const normalized = {
+          theme: nextSettings.theme || DEFAULT_SETTINGS.theme,
+          deck: nextSettings.deck || DEFAULT_SETTINGS.deck,
+          animations: typeof nextSettings.animations === 'boolean' ? nextSettings.animations : DEFAULT_SETTINGS.animations,
+          haptics: typeof nextSettings.haptics === 'boolean' ? nextSettings.haptics : DEFAULT_SETTINGS.haptics
+      };
+      
+      const themeChanged = userSettings.theme !== normalized.theme;
+      const deckChanged = userSettings.deck !== normalized.deck;
+      const animationChanged = userSettings.animations !== normalized.animations;
+      const hapticsChanged = userSettings.haptics !== normalized.haptics;
+      
+      userSettings = normalized;
+      persistUserSettings();
+      applyTheme(userSettings.theme);
+      applyDeckTheme(userSettings.deck);
+      applyEffectsSettings();
+      syncSettingsControls();
+      
+      if (themeChanged || deckChanged || animationChanged || hapticsChanged) {
+          showSuccessMessage('Настройки сохранены');
+      }
+  }
+
+  function syncSettingsControls() {
+      updateThemeToggleLabel();
+      updateThemeOptionState(userSettings.theme);
+      updateDeckOptionState(userSettings.deck);
+      if (elements.toggleAnimations) {
+          elements.toggleAnimations.checked = Boolean(userSettings.animations);
+      }
+      if (elements.toggleHaptics) {
+          elements.toggleHaptics.checked = Boolean(userSettings.haptics);
+      }
   }
   
   // Настройка Drag and Drop
@@ -1297,6 +1497,9 @@ const onboarding = {
           
           // Сохранение результата
           saveGameResult();
+          const winResult = { time: gameState.timer, moves: gameState.moves };
+          updateLocalStatsOnWin(winResult);
+          evaluateAchievements(winResult);
           
           // Показ popup в Telegram (с проверкой поддержки)
           if (tg && typeof tg.showPopup === 'function') {
@@ -1376,20 +1579,31 @@ const onboarding = {
     // Hint system
   function showHint() {
       if (!gameState || gameState.gameOver) return;
+
+      if (!gameState.gameStarted) {
+          if (Array.isArray(gameState.stock) && gameState.stock.length > 0) {
+              highlightStockPile();
+              showHintMessage('Сделайте первый ход — откройте карту из колоды.');
+              return;
+          }
+          showHintMessage('Начните новую игру, чтобы получить подсказку.');
+          return;
+      }
+
       const move = findBestMove();
       clearHintHighlights();
       if (!move) {
           if (Array.isArray(gameState.stock) && gameState.stock.length > 0) {
               highlightStockPile();
-              showHintMessage('Vozmite kartu iz kolody');
+              showHintMessage('Возьмите карту из колоды.');
           } else {
-              showHintMessage('Net dostupnyh hodov. Nachnite novuyu igru.');
+              showHintMessage('Нет доступных ходов. Начните новую игру.');
           }
           return;
       }
       if (move.type === 'draw') {
           highlightStockPile();
-          showHintMessage('Vozmite kartu iz kolody');
+          showHintMessage('Возьмите карту из колоды.');
           return;
       }
       highlightHintMove(move);
@@ -1455,7 +1669,7 @@ const onboarding = {
           const wasteCard = gameState.waste[wasteLength - 1];
           for (let f = 0; f < 4; f++) {
               if (canMoveCards([wasteCard], { type: 'foundation', index: f })) {
-                  return createHintMove('waste', 0, wasteLength - 1, 'foundation', f, wasteCard, 'Peremestite ' + formatCardName(wasteCard) + ' v bazu', 100);
+                  return createHintMove('waste', 0, wasteLength - 1, 'foundation', f, wasteCard, 'Переместите ' + formatCardName(wasteCard, 'accusative') + ' в основание.', 100);
               }
           }
       }
@@ -1468,7 +1682,16 @@ const onboarding = {
               if (canMoveCards([topCard], { type: 'foundation', index: f })) {
                   const reveals = pile.length > 1 && !pile[pile.length - 2].faceUp;
                   const priority = reveals ? 95 : 90;
-                  return createHintMove('tableau', t, pile.length - 1, 'foundation', f, topCard, 'Peremestite ' + formatCardName(topCard) + ' v bazu', priority);
+                  return createHintMove(
+                      'tableau',
+                      t,
+                      pile.length - 1,
+                      'foundation',
+                      f,
+                      topCard,
+                      'Переместите ' + formatCardName(topCard, 'accusative') + ' в основание.',
+                      priority
+                  );
               }
           }
       }
@@ -1486,7 +1709,18 @@ const onboarding = {
                   if (!canMoveCards(sequence, { type: 'tableau', index: to })) continue;
                   const reveals = cardIndex > 0 && !pile[cardIndex - 1].faceUp;
                   const priority = reveals ? 80 : 60;
-                  moves.push(createHintMove('tableau', from, cardIndex, 'tableau', to, card, 'Peremestite ' + formatCardName(card) + ' v kolonku ' + (to + 1), priority));
+                  moves.push(
+                      createHintMove(
+                          'tableau',
+                          from,
+                          cardIndex,
+                          'tableau',
+                          to,
+                          card,
+                          'Переместите ' + formatCardName(card, 'accusative') + ' на колонку ' + (to + 1) + '.',
+                          priority
+                      )
+                  );
               }
           }
       }
@@ -1494,7 +1728,18 @@ const onboarding = {
           const wasteCard = gameState.waste[wasteLength - 1];
           for (let to = 0; to < 7; to++) {
               if (!canMoveCards([wasteCard], { type: 'tableau', index: to })) continue;
-              moves.push(createHintMove('waste', 0, wasteLength - 1, 'tableau', to, wasteCard, 'Peremestite ' + formatCardName(wasteCard) + ' v kolonku ' + (to + 1), 55));
+              moves.push(
+                  createHintMove(
+                      'waste',
+                      0,
+                      wasteLength - 1,
+                      'tableau',
+                      to,
+                      wasteCard,
+                      'Переместите ' + formatCardName(wasteCard, 'accusative') + ' на колонку ' + (to + 1) + '.',
+                      55
+                  )
+              );
           }
       }
       if (moves.length > 0) {
@@ -1521,17 +1766,30 @@ const onboarding = {
       };
   }
 
-  function formatCardName(card) {
-      if (!card) return 'karta';
-      const suitMap = {
-          hearts: 'chervy',
-          diamonds: 'bubny',
-          clubs: 'kresty',
-          spades: 'piki'
+  function formatCardName(card, grammaticalCase = 'nominative') {
+      if (!card) return 'карту';
+      const valueMap = {
+          A: { nominative: 'туз', accusative: 'туза' },
+          J: { nominative: 'валет', accusative: 'валета' },
+          Q: { nominative: 'дама', accusative: 'даму' },
+          K: { nominative: 'король', accusative: 'короля' }
       };
-      const suit = suitMap[card.suit] || (card.suit || '');
-      return card.value + ' ' + suit;
-
+      const suitMap = {
+          hearts: { nominative: 'черви', accusative: 'червы' },
+          diamonds: { nominative: 'бубны', accusative: 'бубны' },
+          clubs: { nominative: 'трефы', accusative: 'трефы' },
+          spades: { nominative: 'пики', accusative: 'пики' }
+      };
+      const valueKey = card.value.toUpperCase();
+      const suitKey = card.suit;
+      const caseKey = grammaticalCase === 'accusative' ? 'accusative' : 'nominative';
+      const valueText = valueMap[valueKey]
+          ? valueMap[valueKey][caseKey]
+          : card.value;
+      const suitText = suitMap[suitKey]
+          ? suitMap[suitKey][caseKey]
+          : card.suit;
+      return `${valueText} ${suitText}`;
   }
   
   // Триггер празднования на фоне при успешном ходе
@@ -1664,20 +1922,14 @@ const onboarding = {
   // Показать лидерборд
   async function showLeaderboard() {
       const leaderboard = await fetchLeaderboard();
-      
-      if (!leaderboard || !leaderboard.length) {
-          if (tg && typeof tg.showPopup === 'function') {
-              try {
-                  return tg.showPopup({ title: 'Лидерборд', message: 'Лидерборд недоступен', buttons: [{ type: 'ok', text: 'Ок' }] });
-              } catch (e) {
-                  return alert('Лидерборд недоступен');
-              }
-          }
-          return alert('Лидерборд недоступен');
-      }
-      
-      // Показываем модальное окно с лидербордом
       showStatsModal();
+      renderAchievements();
+      if (!leaderboard || !leaderboard.length) {
+          if (elements.leaderboardList) {
+              elements.leaderboardList.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>';
+          }
+          return;
+      }
       renderLeaderboard(leaderboard);
   }
   
@@ -1697,34 +1949,70 @@ const onboarding = {
   // Отрисовка лидерборда
   function renderLeaderboard(leaderboard) {
       if (!elements.leaderboardList) return;
-      
+  
       elements.leaderboardList.innerHTML = '';
-      
-      leaderboard.slice(0, 5).forEach((player, index) => {
+      const players = Array.isArray(leaderboard) ? leaderboard.filter(Boolean) : [];
+      const topPlayers = players.slice(0, 4);
+      while (topPlayers.length < 4) {
+          topPlayers.push(null);
+      }
+  
+      topPlayers.forEach((player, index) => {
           const rank = index + 1;
           const item = document.createElement('div');
           item.className = `leaderboard-item rank-${rank}`;
-          
+  
+          if (!player) {
+              item.classList.add('leaderboard-item--empty');
+          }
+  
           const rankElement = document.createElement('div');
-          rankElement.className = `leaderboard-rank rank-${rank}`;
+          rankElement.className = 'leaderboard-rank';
           rankElement.textContent = rank;
-          
+  
           const infoElement = document.createElement('div');
           infoElement.className = 'leaderboard-info';
-          
-          const nicknameElement = document.createElement('div');
-          nicknameElement.className = 'leaderboard-nickname';
-          nicknameElement.textContent = player.nickname || 'Аноним';
-          
-          const statsElement = document.createElement('div');
-          statsElement.className = 'leaderboard-stats';
-          statsElement.textContent = `Время: ${formatTime(player.bestTime)} | Ходы: ${player.bestMoves}`;
-          
-          infoElement.appendChild(nicknameElement);
-          infoElement.appendChild(statsElement);
+  
+          const nameElement = document.createElement('div');
+          nameElement.className = 'leaderboard-name';
+          nameElement.textContent = player?.nickname || 'Свободно';
+  
+          const detailsElement = document.createElement('div');
+          detailsElement.className = 'leaderboard-details';
+  
+          const metricsElement = document.createElement('div');
+          metricsElement.className = 'leaderboard-metrics';
+  
+          const timeSpan = document.createElement('span');
+          timeSpan.className = 'leaderboard-time';
+          const bestTimeValue = player && player.bestTime !== undefined ? Number(player.bestTime) : NaN;
+          const hasTime = Number.isFinite(bestTimeValue) && bestTimeValue >= 0;
+          timeSpan.textContent = `Время: ${hasTime ? formatTime(bestTimeValue) : '—:—'}`;
+  
+          const rawScore = player ? (
+              Number.isFinite(Number(player.score)) ? Number(player.score) :
+              Number.isFinite(Number(player.points)) ? Number(player.points) :
+              Number.isFinite(Number(player.bestMoves)) ? Number(player.bestMoves) :
+              NaN
+          ) : NaN;
+          const hasScore = Number.isFinite(rawScore);
+          const scoreLabel = player
+              ? ((player.score !== undefined || player.points !== undefined) ? 'Очки' : 'Ходы')
+              : 'Очки';
+          const scoreSpan = document.createElement('span');
+          scoreSpan.className = 'leaderboard-score';
+          scoreSpan.textContent = `${scoreLabel}: ${hasScore ? rawScore : '—'}`;
+  
+          metricsElement.appendChild(timeSpan);
+          metricsElement.appendChild(scoreSpan);
+          detailsElement.appendChild(metricsElement);
+  
+          infoElement.appendChild(nameElement);
+          infoElement.appendChild(detailsElement);
+  
           item.appendChild(rankElement);
           item.appendChild(infoElement);
-          
+  
           elements.leaderboardList.appendChild(item);
       });
   }
@@ -1793,59 +2081,294 @@ const onboarding = {
       }
   }
   
-  // Применение темы Telegram
-  function applyTheme() {
-      // Приоритет локального сохранения пользователя
-      const savedTheme = safeStorageGet('kq_theme');
-      if (savedTheme === 'dark' || savedTheme === 'light') {
-          document.documentElement.setAttribute('data-theme', savedTheme);
-      } else if (tg && tg.themeParams) {
-          const theme = tg.themeParams;
-          
-          if (theme.bg_color) {
-              document.documentElement.style.setProperty('--bg-color', theme.bg_color);
-          }
-          if (theme.text_color) {
-              document.documentElement.style.setProperty('--text-color', theme.text_color);
-          }
-          if (theme.button_color) {
-              document.documentElement.style.setProperty('--btn-primary-bg', theme.button_color);
-          }
-          if (theme.button_text_color) {
-              document.documentElement.style.setProperty('--btn-primary-color', theme.button_text_color);
-          }
-          
-          // Определение темной темы
-          const isDark = theme.bg_color && theme.bg_color.toLowerCase().includes('1a1a1a');
-          document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-      }
-      updateThemeToggleLabel();
-  }
-  
-  // Применение выбранной колоды (оформление рубашки)
-  function applyDeck() { /* отключено */ }
-  
-  function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = current === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', next);
-      safeStorageSet('kq_theme', next);
-      updateThemeToggleLabel();
-      
-      // Обновляем фон при смене темы
+  // Темы и визуальные настройки
+  function applyTheme(preference = userSettings.theme) {
+      const targetPreference = preference || DEFAULT_SETTINGS.theme;
+      applyTelegramThemeParams();
+      const resolvedTheme = getEffectiveTheme(targetPreference);
+      document.documentElement.setAttribute('data-theme', resolvedTheme);
+      document.documentElement.setAttribute('data-theme-preference', targetPreference);
+      updateThemeToggleLabel(resolvedTheme, targetPreference);
+      updateThemeOptionState(targetPreference);
       updateBackgroundTheme();
   }
-  
-  function toggleDeck() { /* отключено */ }
-  
-  function updateThemeToggleLabel() {
-      if (!elements.themeToggleBtn) return;
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      elements.themeToggleBtn.textContent = (current === 'dark' ? 'Тёмная' : 'Светлая') + ' тема';
+
+  function setThemePreference(preference) {
+      const normalized = (preference === 'dark' || preference === 'light' || preference === 'auto')
+          ? preference
+          : DEFAULT_SETTINGS.theme;
+      userSettings.theme = normalized;
+      persistUserSettings();
+      applyTheme(normalized);
   }
-  
-  function updateDeckToggleLabel() { /* отключено */ }
-  
+
+  function toggleTheme() {
+      const currentPreference = userSettings.theme;
+      const effectiveTheme = getEffectiveTheme(currentPreference);
+      const nextPreference = currentPreference === 'auto'
+          ? (effectiveTheme === 'dark' ? 'light' : 'dark')
+          : (currentPreference === 'dark' ? 'light' : 'dark');
+      setThemePreference(nextPreference);
+      if (modalSettings) {
+          modalSettings.theme = nextPreference;
+          updateThemeOptionState(nextPreference);
+      }
+  }
+
+  function getEffectiveTheme(preference = userSettings.theme) {
+      const pref = preference || DEFAULT_SETTINGS.theme;
+      if (pref === 'dark' || pref === 'light') return pref;
+      const telegramTheme = inferThemeFromTelegram();
+      if (telegramTheme) return telegramTheme;
+      return detectSystemTheme();
+  }
+
+  function detectSystemTheme() {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          return 'dark';
+      }
+      return 'light';
+  }
+
+  function inferThemeFromTelegram() {
+      if (!tg) return null;
+      if (typeof tg.colorScheme === 'string') {
+          if (tg.colorScheme === 'dark' || tg.colorScheme === 'light') {
+              return tg.colorScheme;
+          }
+      }
+      if (tg.themeParams && tg.themeParams.bg_color) {
+          return isColorDark(tg.themeParams.bg_color) ? 'dark' : 'light';
+      }
+      return null;
+  }
+
+  function applyTelegramThemeParams() {
+      if (!tg || !tg.themeParams) return;
+      const theme = tg.themeParams;
+      if (theme.bg_color) {
+          document.documentElement.style.setProperty('--bg-color', theme.bg_color);
+      }
+      if (theme.text_color) {
+          document.documentElement.style.setProperty('--text-color', theme.text_color);
+      }
+      if (theme.button_color) {
+          document.documentElement.style.setProperty('--btn-primary-bg', theme.button_color);
+      }
+      if (theme.button_text_color) {
+          document.documentElement.style.setProperty('--btn-primary-color', theme.button_text_color);
+      }
+  }
+
+  function isColorDark(hex) {
+      if (typeof hex !== 'string') return false;
+      const value = hex.replace('#', '');
+      if (value.length !== 6) return false;
+      const r = parseInt(value.slice(0, 2), 16);
+      const g = parseInt(value.slice(2, 4), 16);
+      const b = parseInt(value.slice(4, 6), 16);
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return false;
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance < 0.5;
+  }
+
+  function updateThemeToggleLabel(resolvedTheme = getEffectiveTheme(), preference = userSettings.theme) {
+      if (!elements.themeToggleBtn) return;
+      let label;
+      if (preference === 'auto') {
+          const readable = resolvedTheme === 'dark' ? 'тёмная' : 'светлая';
+          label = `Тема: Авто (${readable})`;
+      } else {
+          label = `Тема: ${preference === 'dark' ? 'Тёмная' : 'Светлая'}`;
+      }
+      elements.themeToggleBtn.textContent = label;
+  }
+
+  function updateThemeOptionState(selectedTheme) {
+      if (!elements.themeOptionButtons || !elements.themeOptionButtons.length) return;
+      elements.themeOptionButtons.forEach((button) => {
+          const isActive = button.dataset.theme === selectedTheme;
+          button.classList.toggle('active', isActive);
+          button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+  }
+
+  function updateDeckOptionState(selectedDeck) {
+      if (!elements.deckOptionButtons || !elements.deckOptionButtons.length) return;
+      elements.deckOptionButtons.forEach((button) => {
+          const isActive = button.dataset.deck === selectedDeck;
+          button.classList.toggle('active', isActive);
+          button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+  }
+
+  function applyDeckTheme(deck = userSettings.deck) {
+      const selected = deck || DEFAULT_SETTINGS.deck;
+      document.documentElement.setAttribute('data-deck', selected);
+      updateDeckOptionState(selected);
+  }
+
+  function setDeckPreference(deck) {
+      const normalized = deck || DEFAULT_SETTINGS.deck;
+      userSettings.deck = normalized;
+      persistUserSettings();
+      applyDeckTheme(normalized);
+  }
+
+  function applyEffectsSettings() {
+      document.documentElement.setAttribute('data-animations', userSettings.animations ? 'on' : 'off');
+      document.documentElement.setAttribute('data-haptics', userSettings.haptics ? 'on' : 'off');
+      if (elements.toggleAnimations) {
+          elements.toggleAnimations.checked = Boolean(userSettings.animations);
+      }
+      if (elements.toggleHaptics) {
+          elements.toggleHaptics.checked = Boolean(userSettings.haptics);
+      }
+  }
+
+  function persistUserSettings() {
+      safeStorageSet('kq_theme_pref', userSettings.theme);
+      if (userSettings.theme === 'light' || userSettings.theme === 'dark') {
+          safeStorageSet('kq_theme', userSettings.theme);
+      }
+      safeStorageSet('kq_deck_theme', userSettings.deck);
+      safeStorageSet('kq_animations_enabled', userSettings.animations ? '1' : '0');
+      safeStorageSet('kq_haptics_enabled', userSettings.haptics ? '1' : '0');
+  }
+
+  function loadUserSettings() {
+      const storedTheme = safeStorageGet('kq_theme_pref') || safeStorageGet('kq_theme');
+      const storedDeck = safeStorageGet('kq_deck_theme');
+      const storedAnimations = safeStorageGet('kq_animations_enabled');
+      const storedHaptics = safeStorageGet('kq_haptics_enabled');
+      const theme = (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'auto')
+          ? storedTheme
+          : DEFAULT_SETTINGS.theme;
+      return {
+          theme,
+          deck: storedDeck || DEFAULT_SETTINGS.deck,
+          animations: storedAnimations === null ? DEFAULT_SETTINGS.animations : storedAnimations !== '0',
+          haptics: storedHaptics === null ? DEFAULT_SETTINGS.haptics : storedHaptics !== '0'
+      };
+  }
+
+  function loadLocalStats() {
+      const raw = safeStorageGet('kq_local_stats');
+      if (!raw) return { ...DEFAULT_STATS };
+      try {
+          const parsed = JSON.parse(raw);
+          return { ...DEFAULT_STATS, ...parsed };
+      } catch (_) {
+          return { ...DEFAULT_STATS };
+      }
+  }
+
+  function storeLocalStats() {
+      safeStorageSet('kq_local_stats', JSON.stringify(localStats));
+  }
+
+  function loadUnlockedAchievements() {
+      const raw = safeStorageGet('kq_achievements');
+      if (!raw) return [];
+      try {
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+          return [];
+      }
+  }
+
+  function persistAchievements() {
+      safeStorageSet('kq_achievements', JSON.stringify(unlockedAchievements));
+  }
+
+  function isAchievementUnlocked(id) {
+      return unlockedAchievements.some((item) => item.id === id);
+  }
+
+  function unlockAchievement(id) {
+      if (isAchievementUnlocked(id)) return;
+      const achievement = ACHIEVEMENTS.find((item) => item.id === id);
+      unlockedAchievements.push({ id, unlockedAt: new Date().toISOString() });
+      persistAchievements();
+      renderAchievements();
+      if (achievement) {
+          showSuccessMessage(`Новое достижение: ${achievement.title}`);
+      }
+  }
+
+  function renderAchievements() {
+      if (!elements.achievementsList) return;
+      const container = elements.achievementsList;
+      container.innerHTML = '';
+      const unlockedSet = new Set(unlockedAchievements.map((item) => item.id));
+      ACHIEVEMENTS.forEach((achievement) => {
+          const badge = document.createElement('div');
+          const isUnlocked = unlockedSet.has(achievement.id);
+          badge.className = 'achievement-badge' + (isUnlocked ? ' is-unlocked' : '');
+
+          const title = document.createElement('div');
+          title.className = 'achievement-title';
+          title.textContent = achievement.title;
+          badge.appendChild(title);
+
+          const description = document.createElement('div');
+          description.className = 'achievement-desc';
+          description.textContent = achievement.description;
+          badge.appendChild(description);
+
+          if (isUnlocked) {
+              const meta = unlockedAchievements.find((item) => item.id === achievement.id);
+              if (meta && meta.unlockedAt) {
+                  const metaElement = document.createElement('div');
+                  metaElement.className = 'achievement-meta';
+                  metaElement.textContent = new Date(meta.unlockedAt).toLocaleDateString('ru-RU');
+                  badge.appendChild(metaElement);
+              }
+          } else {
+              badge.setAttribute('aria-disabled', 'true');
+          }
+
+          container.appendChild(badge);
+      });
+
+      if (!ACHIEVEMENTS.length) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'achievement-empty';
+          placeholder.textContent = 'Достижения пока не добавлены';
+          container.appendChild(placeholder);
+      }
+  }
+
+  function updateLocalStatsOnWin(result) {
+      localStats.totalWins += 1;
+      localStats.lastWinTime = result.time;
+      localStats.lastWinMoves = result.moves;
+      if (localStats.bestTime === null || result.time < localStats.bestTime) {
+          localStats.bestTime = result.time;
+      }
+      if (localStats.bestMoves === null || result.moves < localStats.bestMoves) {
+          localStats.bestMoves = result.moves;
+      }
+      localStats.winStreak = (localStats.winStreak || 0) + 1;
+      localStats.longestStreak = Math.max(localStats.longestStreak || 0, localStats.winStreak);
+      storeLocalStats();
+  }
+
+  function evaluateAchievements(result) {
+      const context = { ...localStats, lastWinTime: result.time, lastWinMoves: result.moves };
+      ACHIEVEMENTS.forEach((achievement) => {
+          if (isAchievementUnlocked(achievement.id)) return;
+          try {
+              if (achievement.check(context)) {
+                  unlockAchievement(achievement.id);
+              }
+          } catch (error) {
+              console.warn('Ошибка проверки достижения', achievement.id, error);
+          }
+      });
+  }
+
   function safeStorageGet(key) {
       try { return localStorage.getItem(key); } catch (_) { return null; }
   }
@@ -1969,7 +2492,11 @@ const onboarding = {
       
       // Обработка изменения темы Telegram
       if (tg && tg.onEvent) {
-          tg.onEvent('themeChanged', applyTheme);
+          tg.onEvent('themeChanged', () => {
+              if (userSettings.theme === 'auto') {
+                  applyTheme('auto');
+              }
+          });
       }
   });
   
@@ -2114,15 +2641,16 @@ try {
     showLeaderboard = async function() {
         const leaderboard = await fetchJson('/leaderboard');
         if (typeof showStatsModal === 'function') showStatsModal();
+        if (typeof renderAchievements === 'function') renderAchievements();
         const list = document.getElementById('leaderboard-list');
-        if (!leaderboard || !leaderboard.length) {
-            if (list) list.innerHTML = '<div class="leaderboard-empty">������ ���� ���</div>';
-            return;
-        }
         if (typeof renderLeaderboard === 'function') {
-            renderLeaderboard(leaderboard);
+            renderLeaderboard(Array.isArray(leaderboard) ? leaderboard : []);
         } else if (list) {
-            list.textContent = JSON.stringify(leaderboard);
+            if (Array.isArray(leaderboard) && leaderboard.length) {
+                list.textContent = JSON.stringify(leaderboard);
+            } else {
+                list.innerHTML = '<div class="leaderboard-empty">Данных пока нет</div>';
+            }
         }
     };
 } catch (_) {}

@@ -54,7 +54,8 @@
                 <button id="undo-btn" class="btn btn-secondary">Отменить</button>
                 <button id="hint-btn" class="btn btn-secondary btn-hint">💡 Подсказка</button>
                 <button id="stats-btn" class="btn btn-secondary">📊 Статистика</button>
-                <button id="theme-toggle-btn" class="btn btn-secondary">Тема: Светлая</button>
+                <!-- <button id="settings-btn" class="btn btn-secondary">⚙️ Настройки</button> -->
+                <!-- <button id="theme-toggle-btn" class="btn btn-secondary">Тема: Светлая</button> -->
             </div>
         </header>
 
@@ -123,17 +124,84 @@
 
         <!-- Модальное окно статистики -->
         <div id="stats-modal" class="modal hidden">
-            <div class="modal-content">
+            <div class="modal-content leaderboard-modal">
                 <h2>📊 Лидерборд</h2>
                 <div class="leaderboard">
                     <div id="leaderboard-list" class="leaderboard-list">
-                        <!-- Топ-5 игроков будет загружен здесь -->
+                        <!-- Топ-4 игроков будет загружен здесь -->
                     </div>
                 </div>
-                <div class="stats-footer">
-                    <p>Ваш псевдоним: <span id="user-nickname">Не установлен</span></p>
+                <div class="achievements">
+                    <h3>🏅 Достижения</h3>
+                    <div id="achievements-list" class="achievements-list">
+                        <div class="achievement-empty">Пока ещё нет достижений</div>
+                    </div>
                 </div>
-                <button id="close-stats-btn" class="btn btn-secondary">Закрыть</button>
+                <div class="leaderboard-footer">
+                    <div class="leaderboard-save">
+                        <button id="leaderboard-save-btn" class="btn btn-primary" disabled>Сохранить</button>
+                        <span class="leaderboard-save-status">Не сохранено</span>
+                    </div>
+                    <div class="leaderboard-meta-bar">
+                        <p>Ваш псевдоним: <span id="user-nickname">Не установлен</span></p>
+                        <button id="close-stats-btn" class="btn btn-secondary">Закрыть</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно настроек -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content settings-modal">
+                <h2>⚙️ Настройки</h2>
+
+                <div class="settings-section">
+                    <h3>Тема интерфейса</h3>
+                    <div class="theme-options" role="radiogroup">
+                        <button type="button" class="theme-option" data-theme="light">Светлая</button>
+                        <button type="button" class="theme-option" data-theme="dark">Тёмная</button>
+                        <button type="button" class="theme-option" data-theme="auto">Авто</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Колода</h3>
+                    <div class="deck-options" role="list">
+                        <button type="button" class="deck-option" data-deck="classic" aria-label="Классическая колода">
+                            <span class="deck-preview deck-preview--classic"></span>
+                            <span class="deck-title">Классика</span>
+                        </button>
+                        <button type="button" class="deck-option" data-deck="modern" aria-label="Современная колода">
+                            <span class="deck-preview deck-preview--modern"></span>
+                            <span class="deck-title">Модерн</span>
+                        </button>
+                        <button type="button" class="deck-option" data-deck="space" aria-label="Космическая колода">
+                            <span class="deck-preview deck-preview--space"></span>
+                            <span class="deck-title">Космос</span>
+                        </button>
+                        <button type="button" class="deck-option" data-deck="nature" aria-label="Природная колода">
+                            <span class="deck-preview deck-preview--nature"></span>
+                            <span class="deck-title">Природа</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Эффекты</h3>
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="toggle-animations" checked>
+                        <span class="toggle-label">Анимации</span>
+                    </label>
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="toggle-haptics" checked>
+                        <span class="toggle-label">Вибрация</span>
+                    </label>
+                </div>
+
+                <div class="settings-actions">
+                    <button id="save-settings-btn" class="btn btn-primary">Сохранить</button>
+                    <button id="close-settings-btn" class="btn btn-secondary">Закрыть</button>
+                </div>
             </div>
         </div>
     </div>
